@@ -1,254 +1,588 @@
-import streamlit as st
-import pandas as pd
-from PIL import Image
 import io
 import os
+from dataclasses import dataclass
+from typing import List, Set
 
-# =========================
-# 기본 설정
-# =========================
+import pandas as pd
+import streamlit as st
+from PIL import Image
 
+
+# =========================================================
+# 0) Streamlit 기본 설정
+# =========================================================
 st.set_page_config(
-    page_title="MS 상세페이지 자동생성기",
+    page_title="MS 상세페이지 자동생성기 [FREE]",
     page_icon="🧷",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
-
-# =========================
-# 비밀번호 로딩
-# =========================
 
 PASSWORD_FILE = "비번리스트.xlsx"
+PRO_CONTACT_EMAIL = "misharpmail@naver.com"
 
-@st.cache_data(show_spinner=False)
-def load_passwords():
-    if not os.path.exists(PASSWORD_FILE):
-        return set()
-    df = pd.read_excel(PASSWORD_FILE)
-    col = df.columns[0]
-    return set(df[col].astype(str).str.strip())
 
-PRO_PASSWORDS = load_passwords()
+# =========================================================
+# 1) 목업 카피 (요청대로 “그대로” 사용)
+# =========================================================
+APP_BADGE = "MISHARP IMAGE GENERATOR V1-FREE VERSION"
 
-# =========================
-# 세션 초기화
-# =========================
+# ✅ 형준님이 강조하신 “가장 타이틀”
+APP_TITLE = "MS 상세페이지 자동생성기 [FREE]"
 
-if "is_pro" not in st.session_state:
-    st.session_state.is_pro = False
+APP_SUBTITLE = "상세페이지 이미지를 자동으로 생성하여 디자이너의 단순업무시간을 대폭 줄여드립니다."
 
-if "uploaded_files" not in st.session_state:
-    st.session_state.uploaded_files = []
-
-# =========================
-# 🎨 디자인 CSS (목업 기반 재설계)
-# =========================
-
-st.markdown("""
-<style>
-
-.block-container {
-    max-width: 1180px;
-    padding-top: 2rem;
-    padding-bottom: 4rem;
-}
-
-body {
-    background: linear-gradient(180deg, #fafafa 0%, #f4f6f9 100%);
-}
-
-/* 상단 배지 */
-.badge {
-    font-size: 12px;
-    padding: 6px 12px;
-    background: #f1f3f6;
-    border-radius: 20px;
-    display: inline-block;
-    margin-bottom: 20px;
-    color: #666;
-}
-
-/* 히어로 */
-.hero {
-    background: linear-gradient(135deg, #ffdce6, #dceeff);
-    padding: 30px;
-    border-radius: 18px;
-    margin-bottom: 30px;
-}
-
-.hero h1 {
-    font-size: 28px;
-    font-weight: 800;
-    margin-bottom: 8px;
-}
-
-.hero p {
-    font-size: 15px;
-    color: #333;
-}
-
-/* 카드 */
-.card {
-    background: #ffffff;
-    padding: 25px;
-    border-radius: 18px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.05);
-    margin-bottom: 30px;
-}
-
-/* 버튼 */
-div.stButton > button {
-    border-radius: 14px !important;
-    font-weight: 700 !important;
-    padding: 0.6rem 1.2rem !important;
-}
-
-/* 강조 버튼 */
-.primary-btn button {
-    background: #0f172a !important;
-    color: white !important;
-}
-
-/* 업로드 박스 강조 */
-section[data-testid="stFileUploader"] {
-    border-radius: 16px !important;
-}
-
-/* 제목 계층 */
-.section-title {
-    font-size: 20px;
-    font-weight: 800;
-    margin-bottom: 12px;
-}
-
-.small-text {
-    font-size: 13px;
-    color: #666;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# =========================
-# 상단 영역
-# =========================
-
-col1, col2 = st.columns([0.8, 0.2])
-
-with col1:
-    st.markdown('<div class="badge">MISHARP IMAGE GENERATOR V1 - FREE VERSION</div>', unsafe_allow_html=True)
-
-with col2:
-    st.markdown('<div class="primary-btn">', unsafe_allow_html=True)
-    if st.button("PRO 신청"):
-        st.session_state.show_pro = True
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# =========================
-# 히어로
-# =========================
-
-st.markdown("""
-<div class="hero">
-<h1>디자이너의 단순 작업, 이제 자동으로.</h1>
-<p>20년차 쇼핑몰 운영자가 현업에서 쓰려고 만든 상세페이지 업무툴입니다. 빠르고, 깔끔하고, 실수 없이.</p>
-</div>
-""", unsafe_allow_html=True)
-
-# =========================
-# 사용방법 카드
-# =========================
-
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="section-title">사용방법</div>', unsafe_allow_html=True)
-st.markdown("""
-1. 이미지 업로드 (최대 10개)<br>
-2. 이미지 간격 0~100px 조정<br>
-3. 생성하기 버튼 클릭하면 끝
-""", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
-
-# =========================
-# 업로드 카드
-# =========================
-
-st.markdown('<div class="card">', unsafe_allow_html=True)
-
-st.markdown('<div class="section-title">상세페이지 생성</div>', unsafe_allow_html=True)
-
-max_files = 30 if st.session_state.is_pro else 10
-
-uploaded = st.file_uploader(
-    f"이미지 업로드 (최대 {max_files}개)",
-    type=["jpg","jpeg","png"],
-    accept_multiple_files=True
+HOW_TO_QUICK = (
+    "1. 이미지 업로드(최대 10개)   "
+    "2. 이미지 간격 0~100PX 조정   "
+    "3. 생성하기 버튼 클릭하면 끝!"
 )
 
-if uploaded:
-    st.session_state.uploaded_files = uploaded
+FREE_PREVIEW_NOTICE = "*FREE 버전에서 미리보기는 지원되지 않습니다."
 
-gap = st.slider("이미지 간격(px)", 0, 100, 20)
+ABOUT_1 = "MS 상세페이지 생성기는 20년차 여성의류 인터넷 쇼핑몰 대표가 사내에서 사용하기 위해 직접 제작한 프로그램으로"
+ABOUT_2 = "실제 온라인 쇼핑몰 디자인 작업에 적용하고 있으며, 디자이너의 요구사항을 최대한 반영하여 구현한 최고의 툴입니다."
+ABOUT_3 = "MS 업무툴을 통해 단순업무 시간은 줄이고 상세페이지의 퀄리티는 더욱 높이세요."
 
-st.markdown('<div class="primary-btn">', unsafe_allow_html=True)
-generate = st.button("생성하기 (JPG)")
-st.markdown('</div>', unsafe_allow_html=True)
+GUIDE_TITLE = "MS 상세페이지 생성기 사용안내"
+GUIDE_LINES = [
+    "1. 사전에 보정작업을 마친 상세페이지용 이미지를 파일선택 버튼으로 선택(최대 10개 가능.)",
+    "   상세페이지 최적화를 위해 1개 상세페이지당 5개 이미지 구성 추천",
+    "2. 이미지간격 버튼 이용해 이미지간 간격 조정(0~100PX까지 선택/1개 상세페이지당 동일 적용)",
+    "3. 상세페이지 생성 시 최상단과 최하단은 100PX 여백은 고정 생성",
+    "4. 생성하기 버튼 클릭 하면 상세페이지 완성",
+    "5. 상세페이지 내에 텍스트를 구성하고자 하는 경우 텍스트 편집된 JPG 이미지를 함께 업로드해 주세요.",
+    "6. 새 작업을 시작하기 위해서는 초기화를 클릭해주세요.",
+]
 
-# =========================
-# 생성 로직
-# =========================
+PRO_SEC_TITLE = "PSD(고급개체 레이어)가 필요하신가요?"
+PRO_SEC_DESC = "MS PRO는 수정가능한 상세페이지 PSD 다운로드가 가능합니다.(레이어/고급개체 기반)"
+PRO_BULLETS = [
+    "→ PSD로 빠르고 해상도 높은 작업이 필요할 때",
+    "→ 고급개체(SMART OBJECTS) 레이어 작업이 필요할 때",
+    "→ 반복적인 템플릿이 필요할 때",
+    "→ 업로드 파일 미리보기 제공 등 좀더 다양한 기능이 필요할 때",
+]
+PRO_CLAIM = "MS PRO는 상세페이지 웹디자이너에게 최고의 도구가 되어줍니다."
+PRO_TOOL_TITLE = "PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다."
+PRO_TOOLS = [
+    ("GIF 자동 생성기", "움직이는 룩북/배너용 GIF를 자동으로 만들어드립니다."),
+    ("썸네일 메이커", "플랫폼 규격에 맞춘 썸네일을 빠르게 생성합니다."),
+    ("이미지 자르기 툴", "비율 유지/중앙 기준 크롭으로 깔끔하게 정리합니다."),
+]
 
-def build_detail(images, gap):
+FOOTER = "© MISHARP. All rights reserved."
+
+
+# =========================================================
+# 2) 엑셀 비밀번호 로딩
+# =========================================================
+@st.cache_data(show_spinner=False)
+def load_passwords_from_excel() -> Set[str]:
+    if not os.path.exists(PASSWORD_FILE):
+        return set()
+
+    df = pd.read_excel(PASSWORD_FILE)
+
+    # "password" 컬럼이 있으면 우선 사용, 없으면 첫 컬럼
+    cols_lower = {str(c).strip().lower(): c for c in df.columns}
+    col = cols_lower.get("password", df.columns[0])
+
+    pw_series = (
+        df[col]
+        .astype(str)
+        .str.strip()
+        .replace({"nan": "", "None": "", "NONE": ""})
+    )
+    pw_list = [p for p in pw_series.tolist() if p]
+    return set(pw_list)
+
+
+# =========================================================
+# 3) 상태/자료 구조
+# =========================================================
+@dataclass
+class Item:
+    name: str
+    data: bytes
+
+
+def init_state():
+    if "items" not in st.session_state or st.session_state.items is None:
+        st.session_state.items = []
+    if "is_pro" not in st.session_state:
+        st.session_state.is_pro = False
+    if "show_pro_panel" not in st.session_state:
+        st.session_state.show_pro_panel = False
+
+
+def add_uploads(files, clear_first: bool):
+    if clear_first:
+        st.session_state.items = []
+    for f in files:
+        st.session_state.items.append(Item(name=f.name, data=f.getvalue()))
+
+
+def move_item(idx: int, direction: int):
+    items = st.session_state.items or []
+    new_idx = idx + direction
+    if new_idx < 0 or new_idx >= len(items):
+        return
+    items[idx], items[new_idx] = items[new_idx], items[idx]
+    st.session_state.items = items
+
+
+def delete_item(idx: int):
+    items = st.session_state.items or []
+    if 0 <= idx < len(items):
+        items.pop(idx)
+    st.session_state.items = items
+
+
+# =========================================================
+# 4) 이미지 처리 (변형 없음/중앙정렬)
+# =========================================================
+def load_image(file_bytes: bytes) -> Image.Image:
+    img = Image.open(io.BytesIO(file_bytes))
+    if img.mode not in ("RGB", "RGBA"):
+        img = img.convert("RGB")
+    if img.mode == "RGBA":
+        bg = Image.new("RGB", img.size, (255, 255, 255))
+        bg.paste(img, mask=img.split()[-1])
+        img = bg
+    return img
+
+
+def build_detail_image(images: List[Image.Image], gap: int, pad_top_bottom: int = 100) -> Image.Image:
     widths = [im.width for im in images]
     max_w = max(widths)
-    total_h = 200 + sum([im.height for im in images]) + gap*(len(images)-1)
+    heights = [im.height for im in images]
+    total_h = pad_top_bottom + pad_top_bottom + sum(heights) + gap * (len(images) - 1)
 
-    canvas = Image.new("RGB", (max_w, total_h), (255,255,255))
-    y = 100
+    canvas = Image.new("RGB", (max_w, total_h), (255, 255, 255))
+    y = pad_top_bottom
     for im in images:
-        x = (max_w - im.width)//2
-        canvas.paste(im, (x,y))
+        x = (max_w - im.width) // 2
+        canvas.paste(im, (x, y))
         y += im.height + gap
     return canvas
 
-if generate:
-    if not st.session_state.uploaded_files:
-        st.error("이미지를 업로드해주세요.")
-    else:
-        imgs = []
-        for f in st.session_state.uploaded_files:
-            img = Image.open(f)
-            if img.mode == "RGBA":
-                bg = Image.new("RGB", img.size, (255,255,255))
-                bg.paste(img, mask=img.split()[-1])
-                img = bg
-            imgs.append(img)
 
-        result = build_detail(imgs, gap)
+def pil_to_jpg_bytes(img: Image.Image, quality: int = 95) -> bytes:
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=quality, optimize=True)
+    return buf.getvalue()
 
-        buf = io.BytesIO()
-        result.save(buf, format="JPEG", quality=95)
 
-        st.success("상세페이지 생성 완료")
+# =========================================================
+# 5) CSS — “타이틀 잘림”/“글자 안보임” 해결
+# =========================================================
+def inject_css():
+    st.markdown(
+        """
+        <style>
+        /* 전체 폭/여백 */
+        .block-container{
+            max-width: 1200px;
+            padding-top: 22px;
+            padding-bottom: 46px;
+        }
 
-        st.download_button(
-            "다운로드",
-            data=buf.getvalue(),
-            file_name="misharp_detail.jpg",
-            mime="image/jpeg"
+        /* 배경 */
+        [data-testid="stAppViewContainer"]{
+            background:
+                radial-gradient(1200px 520px at 10% 0%, rgba(255, 228, 239, 0.65), transparent 60%),
+                radial-gradient(1200px 520px at 90% 0%, rgba(224, 244, 255, 0.75), transparent 60%),
+                linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
+        }
+
+        /* 카드 공통 */
+        .ms-card{
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.90);
+            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+            padding: 18px 18px;
+        }
+
+        /* 상단 배지 */
+        .ms-badge{
+            display:inline-flex;
+            align-items:center;
+            gap:8px;
+            padding:8px 12px;
+            border-radius:999px;
+            background: rgba(255,255,255,0.85);
+            border: 1px solid rgba(15, 23, 42, 0.10);
+            color: rgba(15, 23, 42, 0.70);
+            font-size: 12px;
+        }
+        .ms-dot{
+            width:10px;height:10px;border-radius:999px;
+            background: linear-gradient(135deg,#ff7aa2,#7ac7ff);
+        }
+
+        /* 타이틀 잘림 방지: line-height / padding / overflow */
+        .ms-title{
+            font-size: 30px;
+            font-weight: 900;
+            letter-spacing: -0.6px;
+            line-height: 1.25;
+            margin: 0;
+            padding: 2px 0 6px 0;
+            color: #0f172a;
+            overflow: visible;
+            white-space: normal;
+        }
+        .ms-subtitle{
+            font-size: 14px;
+            line-height: 1.7;
+            margin: 0;
+            color: rgba(15, 23, 42, 0.72);
+        }
+
+        .ms-h3{
+            font-size: 16px;
+            font-weight: 900;
+            margin: 0 0 10px 0;
+            color: #0f172a;
+        }
+        .ms-small{
+            font-size: 12px;
+            line-height: 1.65;
+            color: rgba(15,23,42,0.70);
+        }
+        .ms-mini{
+            font-size: 11px;
+            line-height: 1.6;
+            color: rgba(15,23,42,0.62);
+        }
+
+        /* 강조 배너 */
+        .ms-hero{
+            border-radius: 18px;
+            border: 1px solid rgba(15,23,42,0.08);
+            background: linear-gradient(135deg, rgba(255,122,162,0.18), rgba(122,199,255,0.18));
+            padding: 18px 18px;
+        }
+        .ms-hero-title{
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: -0.4px;
+            margin: 0 0 6px 0;
+            color: #0f172a;
+        }
+        .ms-hero-body{
+            font-size: 13px;
+            line-height: 1.65;
+            margin: 0;
+            color: rgba(15,23,42,0.78);
+        }
+
+        /* 버튼 */
+        div.stButton>button, div.stDownloadButton>button{
+            border-radius: 14px !important;
+            font-weight: 900 !important;
+            padding: 0.62rem 1.05rem !important;
+            border: 1px solid rgba(15,23,42,0.12) !important;
+        }
+        /* 메인 CTA */
+        .ms-cta div.stButton>button{
+            background: #0f172a !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(15,23,42,0.12) !important;
+        }
+
+        .ms-file-name{
+            font-size: 13px;
+            color: rgba(15,23,42,0.78);
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+            max-width: 640px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# =========================================================
+# 6) UI 섹션들 (목업 구조)
+# =========================================================
+def top_header():
+    left, right = st.columns([0.78, 0.22], vertical_alignment="center")
+
+    with left:
+        st.markdown(
+            f"""
+            <div class="ms-badge">
+              <span class="ms-dot"></span>
+              <span>{APP_BADGE}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-st.markdown('</div>', unsafe_allow_html=True)
+    with right:
+        if st.button("PRO 신청", use_container_width=True):
+            st.session_state.show_pro_panel = not st.session_state.show_pro_panel
 
-# =========================
-# 하단 소개
-# =========================
+    if st.session_state.show_pro_panel:
+        pro_passwords = load_passwords_from_excel()
+        st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+        st.markdown('<div class="ms-h3">PRO 신청</div>', unsafe_allow_html=True)
 
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown('<div class="section-title">이 툴은 누가 만들었나요?</div>', unsafe_allow_html=True)
-st.markdown("""
-20년차 여성의류 온라인 쇼핑몰 대표가 사내에서 사용하기 위해 직접 제작한 프로그램입니다.<br>
-단순 반복 업무는 줄이고, 상세페이지 퀄리티는 더 높이세요.
-""", unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+        if not pro_passwords:
+            st.error("비밀번호 파일을 읽지 못했습니다. 저장소 루트에 '비번리스트.xlsx'가 있는지 확인해주세요.")
+            st.markdown("</div>", unsafe_allow_html=True)
+            return
 
-st.markdown("<div class='small-text' style='text-align:center;'>© MISHARP</div>", unsafe_allow_html=True)
+        st.markdown('<div class="ms-mini">비밀번호를 입력하시면 PRO 기능이 활성화됩니다.</div>', unsafe_allow_html=True)
+        pw = st.text_input("비밀번호 입력", type="password", placeholder="비밀번호를 입력해주세요.")
+        c1, c2 = st.columns([0.32, 0.68], vertical_alignment="center")
+        with c1:
+            if st.button("확인", use_container_width=True):
+                if pw and pw.strip() in pro_passwords:
+                    st.session_state.is_pro = True
+                    st.success("PRO 활성화 완료")
+                else:
+                    st.error("비밀번호가 올바르지 않습니다.")
+        with c2:
+            st.markdown(f'<div class="ms-mini">문의/발급: <b>{PRO_CONTACT_EMAIL}</b></div>', unsafe_allow_html=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+def hero_title_block():
+    # ✅ 형준님이 지적한 “메인 타이틀 + 서브카피”를 목업대로 상단에 크게
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown(f'<h1 class="ms-title">{APP_TITLE}</h1>', unsafe_allow_html=True)
+    st.markdown(f'<p class="ms-subtitle">{APP_SUBTITLE}</p>', unsafe_allow_html=True)
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+    st.markdown(
+        f"""
+        <div style="border:1px dashed rgba(15,23,42,0.14); border-radius:14px; padding:12px 12px; background: rgba(255,255,255,0.75);">
+          <div class="ms-small"><b>사용방법</b></div>
+          <div class="ms-small">{HOW_TO_QUICK}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def banner_block():
+    st.markdown(
+        f"""
+        <div class="ms-hero">
+          <div class="ms-hero-title">디자이너의 단순 작업, 이제 ‘자동’으로.</div>
+          <p class="ms-hero-body">20년차 쇼핑몰 운영자가 현업에서 쓰려고 만든 상세페이지 업무툴입니다. <b>빠르고, 깔끔하고, 실수 없이.</b></p>
+          <div style="height:10px"></div>
+          <div class="ms-mini">FREE로 먼저 써보시고, 필요할 때 PRO로 확장하세요. (상단 <b>PRO 신청</b> 버튼에서 비밀번호 입력)</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def uploader_section():
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown('<div class="ms-h3">상세페이지 생성</div>', unsafe_allow_html=True)
+
+    is_pro = st.session_state.is_pro
+    max_files = 30 if is_pro else 10
+
+    row = st.columns([0.55, 0.20, 0.25], vertical_alignment="bottom")
+    with row[0]:
+        st.markdown('<div class="ms-small"><b>파일선택</b></div>', unsafe_allow_html=True)
+        st.markdown('<div class="ms-mini">(JPG, PNG)</div>', unsafe_allow_html=True)
+    with row[1]:
+        gap = st.slider("이미지 간격 0~100PX", 0, 100, 20, 1)
+    with row[2]:
+        st.markdown("<div style='height:26px'></div>", unsafe_allow_html=True)
+        st.markdown('<div class="ms-cta">', unsafe_allow_html=True)
+        gen_clicked = st.button("생성하기 (JPG)", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    clear_first = st.checkbox("기존 목록 지우고 새로 추가", value=False)
+
+    files = st.file_uploader(
+        f"이미지 업로드 (최대 {max_files}개)",
+        type=["jpg", "jpeg", "png"],
+        accept_multiple_files=True,
+        label_visibility="collapsed",
+    )
+
+    if files:
+        if len(files) > max_files:
+            st.warning(f"최대 {max_files}개까지 업로드 가능합니다. (현재 {len(files)}개)")
+        else:
+            add_uploads(files, clear_first)
+
+    items: List[Item] = st.session_state.items or []
+
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="ms-small"><b>업로드 파일명</b></div>', unsafe_allow_html=True)
+
+    if not items:
+        st.markdown("<div class='ms-mini'>아직 업로드된 파일이 없습니다.</div>", unsafe_allow_html=True)
+    else:
+        for i, it in enumerate(items):
+            cols = st.columns([0.62, 0.14, 0.12, 0.12], vertical_alignment="center")
+            with cols[0]:
+                st.markdown(f"<div class='ms-file-name'>{i+1}. {it.name}</div>", unsafe_allow_html=True)
+            with cols[1]:
+                if st.button("▲", key=f"up_{i}", use_container_width=True):
+                    move_item(i, -1)
+                    st.rerun()
+            with cols[2]:
+                if st.button("▼", key=f"down_{i}", use_container_width=True):
+                    move_item(i, +1)
+                    st.rerun()
+            with cols[3]:
+                if st.button("X", key=f"del_{i}", use_container_width=True):
+                    delete_item(i)
+                    st.rerun()
+
+        c1, c2 = st.columns([0.25, 0.75], vertical_alignment="center")
+        with c1:
+            if st.button("초기화", use_container_width=True):
+                st.session_state.items = []
+                st.rerun()
+        with c2:
+            if not is_pro:
+                st.markdown(f"<div class='ms-mini'><b>{FREE_PREVIEW_NOTICE}</b></div>", unsafe_allow_html=True)
+            else:
+                st.markdown("<div class='ms-mini'><b>PRO:</b> 업로드 이미지 미리보기 + 업로드 30개</div>", unsafe_allow_html=True)
+
+    # PRO 미리보기
+    if is_pro and items:
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        st.markdown('<div class="ms-small"><b>업로드 미리보기 (PRO)</b></div>', unsafe_allow_html=True)
+        thumbs = st.columns(5)
+        for idx, it in enumerate(items[:20]):
+            with thumbs[idx % 5]:
+                try:
+                    im = load_image(it.data)
+                    st.image(im, use_container_width=True)
+                except Exception:
+                    st.caption("미리보기 실패")
+
+    # 생성 처리
+    output_bytes = None
+    if gen_clicked:
+        if not items:
+            st.error("이미지를 먼저 업로드해 주세요.")
+        else:
+            try:
+                imgs = [load_image(it.data) for it in items]
+                out = build_detail_image(imgs, gap=gap, pad_top_bottom=100)
+                output_bytes = pil_to_jpg_bytes(out, quality=95)
+                st.success("상세페이지 JPG 생성이 완료되었습니다.")
+            except Exception as e:
+                st.error(f"생성 중 오류가 발생했습니다: {e}")
+
+    if output_bytes:
+        st.download_button(
+            "다운로드 (JPG)",
+            data=output_bytes,
+            file_name="misharp_detail.jpg",
+            mime="image/jpeg",
+            use_container_width=True,
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def about_block():
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown('<div class="ms-h3">이 툴은 누가 만들었나요?</div>', unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-small'><b>{ABOUT_1}</b></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-small'><b>{ABOUT_2}</b></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-small'><b>{ABOUT_3}</b></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def guide_block():
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown(f'<div class="ms-h3">{GUIDE_TITLE}</div>', unsafe_allow_html=True)
+    for line in GUIDE_LINES:
+        st.markdown(f"<div class='ms-mini'>• {line}</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def pro_block():
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown(f'<div class="ms-h3">{PRO_SEC_TITLE}</div>', unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-small'><b>{PRO_SEC_DESC}</b></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    for b in PRO_BULLETS:
+        st.markdown(f"<div class='ms-mini'>{b}</div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-small'><b>{PRO_CLAIM}</b></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-small'><b>{PRO_TOOL_TITLE}</b></div>", unsafe_allow_html=True)
+
+    cols = st.columns(3)
+    for i, (t, desc) in enumerate(PRO_TOOLS):
+        with cols[i]:
+            st.markdown(
+                f"""
+                <div style="border:1px solid rgba(15,23,42,0.10); border-radius:14px; padding:12px 12px; background: rgba(255,255,255,0.75);">
+                  <div class="ms-small"><b>{t}</b></div>
+                  <div class="ms-mini">{desc}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-mini'><b>사용 및 PRO 문의 : {PRO_CONTACT_EMAIL}</b></div>", unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def footer():
+    st.markdown(
+        f"<div class='ms-mini' style='text-align:center; padding: 14px 0;'>{FOOTER}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# =========================================================
+# 7) main
+# =========================================================
+def main():
+    init_state()
+    inject_css()
+
+    top_header()
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    banner_block()
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    # ✅ 메인 타이틀(목업 핵심)
+    hero_title_block()
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    uploader_section()
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    about_block()
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    guide_block()
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    pro_block()
+    footer()
+
+
+if __name__ == "__main__":
+    main()
