@@ -26,11 +26,10 @@ AD_LEFT_PATH = os.path.join(ASSETS_DIR, "ad_left.png")
 AD_RIGHT_PATH = os.path.join(ASSETS_DIR, "ad_right.png")
 TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 
-# PRO 링크(원하시는 실제 링크로 교체)
 PRO_APPLY_URL = "#"
 
 # =========================================================
-# CSS (빈 박스 제거 + 섹션 간격 2배 + 라벨 제거)
+# CSS (✅ 겹침 방지 핵심: ad-box width:100% + max-width:300px)
 # =========================================================
 st.markdown(
     f"""
@@ -47,22 +46,21 @@ st.markdown(
   --shadow:0 10px 30px rgba(16,24,40,.07);
   --radius:14px;
 
-  /* ✅ 섹션 간격 2배 */
-  --space-1: 16px;
-  --space-2: 24px;
-  --space-3: 32px;
-  --space-4: 40px;
-  --space-5: 56px;
+  /* spacing */
+  --s1:16px;
+  --s2:24px;
+  --s3:32px;
+  --s4:40px;
+  --s5:56px;
 }}
 
 .stApp{{ background: var(--bg) !important; }}
 .block-container{{
-  max-width: 1250px;
-  padding-top: var(--space-3) !important;
+  max-width: 1320px;           /* ✅ 좌/우 여유를 조금 더 줘서 안정화 */
+  padding-top: var(--s3) !important;
   padding-bottom: 70px !important;
 }}
 
-/* ---------- Global typography ---------- */
 html, body, [class*="css"] {{
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR",
                "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
@@ -73,7 +71,7 @@ html, body, [class*="css"] {{
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: var(--space-3);
+  padding: var(--s3);
   box-shadow: var(--shadow);
 }}
 
@@ -88,7 +86,6 @@ html, body, [class*="css"] {{
   font-size: 13px;
   font-weight: 900;
   color: #475467;
-  letter-spacing: .2px;
 }}
 
 .pro-btn a{{ text-decoration:none; }}
@@ -98,9 +95,9 @@ html, body, [class*="css"] {{
   padding: 12px 18px;
   border-radius: 12px;
   font-weight: 950;
-  display:inline-block;
   min-width: 160px;
   text-align:center;
+  display:inline-block;
   box-shadow: 0 8px 18px rgba(17,24,39,.18);
 }}
 
@@ -121,21 +118,21 @@ html, body, [class*="css"] {{
 }}
 
 .guide{{
-  margin-top: var(--space-2);
-  background: var(--card);
+  margin-top: var(--s2);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: var(--space-2);
+  padding: var(--s2);
   text-align:center;
   color: #344054;
   font-weight: 850;
   line-height: 1.55;
+  background:#fff;
 }}
 
-/* ---------- Top banner spacing ---------- */
+/* ---------- ✅ Top banner: content 폭 기준 정확히 중앙 정렬 ---------- */
 .top-banner-wrap{{
-  margin-top: var(--space-3);
-  margin-bottom: var(--space-3);
+  margin: var(--s4) auto var(--s4) auto;
+  max-width: 1320px;          /* block-container와 동일 기준 */
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow:hidden;
@@ -147,16 +144,18 @@ html, body, [class*="css"] {{
   display:block;
 }}
 
-/* ---------- Ads (라벨 삭제: ad-label 없음) ---------- */
+/* ---------- ✅ Ads: 겹침 완전 제거 ---------- */
 .ad-wrapper{{
+  width:100%;
   display:flex;
   justify-content:center;
-  margin-top: var(--space-3);
+  margin-top: var(--s4);
 }}
 
 .ad-box{{
-  width:{AD_WIDTH}px;
-  height:{AD_HEIGHT}px;
+  width: 100%;               /* ✅ 컬럼 폭을 절대 넘지 않게 */
+  max-width: {AD_WIDTH}px;   /* ✅ 300px까지만 */
+  height: {AD_HEIGHT}px;
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -186,19 +185,19 @@ html, body, [class*="css"] {{
 
 /* ---------- Work Area ---------- */
 .section-card{{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:16px;
   box-shadow: var(--shadow);
-  padding: var(--space-3);
-  margin-top: var(--space-3);
+  padding: var(--s3);
+  margin-top: var(--s4);
 }}
 
 .section-title{{
   font-size: 22px;
   font-weight: 950;
   color: var(--text);
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--s1);
 }}
 
 .small-muted{{
@@ -210,23 +209,18 @@ html, body, [class*="css"] {{
 .hr-soft{{
   height:1px;
   background: var(--border);
-  margin: var(--space-2) 0 var(--space-2) 0;
+  margin: var(--s2) 0 var(--s2) 0;
 }}
 
-/* ✅ "파일선택 위 빈 흰박스" 원인 제거:
-   - file_uploader 라벨/설명/캡션/불필요 공간 정리
-*/
+/* file uploader 위쪽 라벨/설명 제거 */
 div[data-testid="stFileUploader"] label {{
   display:none !important;
-}}
-div[data-testid="stFileUploader"] section {{
-  padding-top: 0 !important;
 }}
 div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
   display:none !important;
 }}
 
-/* 버튼 */
+/* buttons */
 .stButton>button{{
   border-radius: 12px !important;
   font-weight: 950 !important;
@@ -251,7 +245,6 @@ div[data-testid="stDownloadButton"] > button{{
   font-weight: 950 !important;
 }}
 
-/* 파일 리스트 */
 .file-name{{
   font-weight: 900;
   color: #344054;
@@ -261,6 +254,7 @@ div[data-testid="stDownloadButton"] > button{{
   white-space: nowrap;
   max-width: 520px;
 }}
+
 .small-btn button{{
   height: 40px !important;
   min-width: 44px !important;
@@ -271,13 +265,13 @@ div[data-testid="stDownloadButton"] > button{{
   font-weight: 950 !important;
 }}
 
-/* ---------- Bottom sections spacing 2배 ---------- */
+/* bottom */
 .marketing{{
-  margin-top: var(--space-5);
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: var(--space-3);
+  margin-top: var(--s5);
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding: var(--s3);
   text-align:center;
   color: var(--danger);
   font-weight: 900;
@@ -285,6 +279,14 @@ div[data-testid="stDownloadButton"] > button{{
   box-shadow: var(--shadow);
 }}
 
+.tool-card{{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow: var(--shadow);
+  padding: var(--s3);
+  min-height: 160px;
+}}
 .tool-title{{
   font-size: 16px;
   font-weight: 950;
@@ -297,18 +299,10 @@ div[data-testid="stDownloadButton"] > button{{
   font-weight: 780;
   line-height: 1.55;
 }}
-.tool-card{{
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:14px;
-  box-shadow: var(--shadow);
-  padding: var(--space-3);
-  min-height: 160px;
-}}
 
 .bottom-cta{{
   text-align:center;
-  margin-top: var(--space-4);
+  margin-top: var(--s4);
 }}
 .bottom-cta a{{
   background: var(--primary);
@@ -323,12 +317,12 @@ div[data-testid="stDownloadButton"] > button{{
 }}
 
 .contact-box{{
-  margin-top: var(--space-3);
+  margin-top: var(--s3);
   text-align:center;
   background:#fff;
   border:1px solid var(--border);
   border-radius:14px;
-  padding: var(--space-3);
+  padding: var(--s3);
   box-shadow: var(--shadow);
 }}
 .contact-box .label{{
@@ -344,7 +338,7 @@ div[data-testid="stDownloadButton"] > button{{
 }}
 
 .copyright{{
-  margin-top: var(--space-3);
+  margin-top: var(--s3);
   text-align:center;
   font-size: 13px;
   color:#98A2B3;
@@ -359,7 +353,7 @@ div[data-testid="stDownloadButton"] > button{{
 # SESSION STATE
 # =========================================================
 if "files" not in st.session_state:
-    st.session_state["files"] = []  # list of tuples: (name, bytes, pil_image)
+    st.session_state["files"] = []
 if "result_bytes" not in st.session_state:
     st.session_state["result_bytes"] = None
 if "result_filename" not in st.session_state:
@@ -481,7 +475,7 @@ st.markdown(
 )
 
 # =========================================================
-# TOP BANNER
+# TOP BANNER (✅ 중앙/폭 기준 일치)
 # =========================================================
 top_uri = img_to_data_uri(TOP_BANNER_PATH)
 if top_uri:
@@ -494,10 +488,10 @@ if top_uri:
         unsafe_allow_html=True,
     )
 else:
-    st.markdown("<div style='height: var(--space-3);'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
 # =========================================================
-# MAIN LAYOUT (광고 300x600 유지)
+# MAIN LAYOUT (✅ 겹침 방지 유지)
 # =========================================================
 left_col, center_col, right_col = st.columns([1.2, 3, 1.2], gap="large")
 
@@ -514,7 +508,6 @@ with center_col:
     st.markdown('<div class="small-muted">JPG/PNG 파일을 업로드하세요. 최대 10개까지 가능합니다.</div>', unsafe_allow_html=True)
     st.markdown('<div class="hr-soft"></div>', unsafe_allow_html=True)
 
-    # ✅ label_visibility="collapsed" 유지 + CSS로 라벨 영역 제거
     uploaded = st.file_uploader(
         "이미지 업로드",
         type=["jpg", "jpeg", "png"],
@@ -524,8 +517,7 @@ with center_col:
     if uploaded:
         add_uploaded_files(uploaded)
 
-    # ✅ 섹션 간격 2배: 컨트롤 사이 여백 증가
-    st.markdown("<div style='height: var(--space-2);'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: var(--s2);'></div>", unsafe_allow_html=True)
 
     cA, cB = st.columns([2, 1.2], gap="medium")
     with cA:
@@ -534,7 +526,7 @@ with center_col:
         st.markdown("<div id='generate_btn'></div>", unsafe_allow_html=True)
         generate_clicked = st.button("생성하기 (JPG)", use_container_width=True)
 
-    st.markdown("<div style='height: var(--space-2);'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: var(--s2);'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title' style='font-size:16px;'>업로드 파일명</div>", unsafe_allow_html=True)
 
     if len(st.session_state["files"]) == 0:
@@ -567,9 +559,9 @@ with center_col:
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<div class='small-muted' style='margin-top: var(--space-2);'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='small-muted' style='margin-top: var(--s2);'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height: var(--space-3);'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: var(--s3);'></div>", unsafe_allow_html=True)
     reset_cols = st.columns([1, 1, 1])
     with reset_cols[2]:
         st.markdown("<div id='reset_btn'></div>", unsafe_allow_html=True)
@@ -602,7 +594,7 @@ with center_col:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
-# BOTTOM SECTIONS (간격 2배)
+# BOTTOM
 # =========================================================
 st.markdown(
     """
@@ -615,7 +607,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height: var(--space-4);'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
@@ -633,7 +625,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height: var(--space-4);'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
@@ -652,13 +644,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height: var(--space-4);'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
 st.markdown(
     "<div class='section-title' style='font-size:24px; font-weight:950; margin-top:0;'>PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다.</div>",
-    unsafe_allow_html=True,
+    unsafe_allow_html=True
 )
-st.markdown("<div style='height: var(--space-2);'></div>", unsafe_allow_html=True)
+
+st.markdown("<div style='height: var(--s2);'></div>", unsafe_allow_html=True)
 
 t1, t2, t3 = st.columns(3, gap="medium")
 with t1:
