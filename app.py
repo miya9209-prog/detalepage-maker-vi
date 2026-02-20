@@ -9,7 +9,7 @@ from PIL import Image
 
 
 # =========================================================
-# 0) PAGE / TITLE (요청: 타이틀 교체)
+# 0) PAGE / TITLE
 # =========================================================
 APP_PAGE_TITLE = "misharp detalepage maker v1"
 st.set_page_config(
@@ -24,15 +24,13 @@ PRO_CONTACT_EMAIL = "misharpmail@naver.com"
 
 
 # =========================================================
-# 1) MOCKUP COPY (목업 기준 고정)
+# 1) MOCKUP COPY (고정)
 # =========================================================
 BADGE_TEXT = "MISHARP DETAIL PAGE MAKER V1-FREE VERSION"
 
 MAIN_TITLE = "misharp detalepage maker v1"
 MAIN_SUBTITLE = "상세페이지 이미지를 자동으로 생성하여 디자이너의 단순업무시간을 대폭 줄여드립니다."
-
 HOWTO_LINE = "*사용방법*  1. 이미지 업로드(최대 10개)  2. 이미지 간격 0~100PX 조정  3. 생성하기 버튼 클릭하면 끝!"
-
 FREE_PREVIEW_NOTICE = "*FREE 버전에서 미리보기는 지원되지 않습니다."
 
 ABOUT_BLOCK = [
@@ -62,13 +60,11 @@ PRO_BULLETS = [
 ]
 PRO_CLAIM = "MS PRO는 상세페이지 웹디자이너에게 최고의 도구가 되어줍니다."
 PRO_TOOL_TITLE = "PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다."
-
 PRO_TOOLS = [
     ("GIF 자동 생성기", "간략설명"),
     ("썸메일 메이커", "간략설명"),
     ("이미지 자르기 툴", "간략설명"),
 ]
-
 FOOTER_COPY = "© MISHARP"
 
 
@@ -80,19 +76,14 @@ def load_passwords_from_excel() -> Set[str]:
     if not os.path.exists(PASSWORD_FILE):
         return set()
     df = pd.read_excel(PASSWORD_FILE)
-
     cols_lower = {str(c).strip().lower(): c for c in df.columns}
     col = cols_lower.get("password", df.columns[0])
-
-    pw = (
-        df[col].astype(str).str.strip()
-        .replace({"nan": "", "None": "", "NONE": ""})
-    )
+    pw = df[col].astype(str).str.strip().replace({"nan": "", "None": "", "NONE": ""})
     return set([p for p in pw.tolist() if p])
 
 
 # =========================================================
-# 3) STATE NORMALIZE (TypeError 원천차단)
+# 3) STATE / NORMALIZE (✅ 여기서 TypeError를 '완전히' 막음)
 # =========================================================
 @dataclass
 class Item:
@@ -104,55 +95,85 @@ def _is_uploaded_file(obj: Any) -> bool:
     return hasattr(obj, "name") and hasattr(obj, "getvalue")
 
 
-def normalize_items(raw: Any) -> List[Item]:
+def force_items_list() -> List[Item]:
+    """
+    세션에 뭐가 들어있든(UploadedFile 단일/리스트/None/기타) 무조건 List[Item]으로 변환.
+    → enumerate에서 절대 터지지 않게 보장.
+    """
+    raw = st.session_state.get("items", None)
+
+    # 1) None
     if raw is None:
+        st.session_state["items"] = []
         return []
+
+    # 2) 이미 List[Item]
+    if isinstance(raw, list) and all(isinstance(x, Item) for x in raw):
+        return raw
+
+    # 3) UploadedFile 단일
+    if _is_uploaded_file(raw):
+        items = [Item(name=raw.name, data=raw.getvalue())]
+        st.session_state["items"] = items
+        return items
+
+    # 4) 리스트(UploadedFile/섞임/이상치)
     if isinstance(raw, list):
-        if len(raw) == 0:
-            return []
-        if all(isinstance(x, Item) for x in raw):
-            return raw
         out: List[Item] = []
         for x in raw:
             if isinstance(x, Item):
                 out.append(x)
             elif _is_uploaded_file(x):
                 out.append(Item(name=x.name, data=x.getvalue()))
+        st.session_state["items"] = out
         return out
-    if _is_uploaded_file(raw):
-        return [Item(name=raw.name, data=raw.getvalue())]
+
+    # 5) 그 외 이상 타입은 초기화
+    st.session_state["items"] = []
     return []
 
 
 def init_state():
     if "is_pro" not in st.session_state:
-        st.session_state.is_pro = False
+        st.session_state["is_pro"] = False
     if "show_pro_panel" not in st.session_state:
-        st.session_state.show_pro_panel = False
-    st.session_state.items = normalize_items(st.session_state.get("items"))
+        st.session_state["show_pro_panel"] = False
+
+    # ✅ 앱 시작부터 강제 정규화
+    force_items_list()
+
+
+def reset_all_session():
+    # items 관련 꼬임을 한 번에 제거
+    for k in list(st.session_state.keys()):
+        if k in ("items", "is_pro", "show_pro_panel", "gap", "uploader", "clear_first"):
+            st.session_state.pop(k, None)
+    st.session_state["items"] = []
+    st.session_state["is_pro"] = False
+    st.session_state["show_pro_panel"] = False
 
 
 def add_uploads(files, clear_first: bool):
-    base = [] if clear_first else (st.session_state.items or [])
+    items = [] if clear_first else force_items_list()
     for f in files:
-        base.append(Item(name=f.name, data=f.getvalue()))
-    st.session_state.items = base
+        items.append(Item(name=f.name, data=f.getvalue()))
+    st.session_state["items"] = items
 
 
 def move_item(idx: int, direction: int):
-    items = st.session_state.items or []
+    items = force_items_list()
     new_idx = idx + direction
     if new_idx < 0 or new_idx >= len(items):
         return
     items[idx], items[new_idx] = items[new_idx], items[idx]
-    st.session_state.items = items
+    st.session_state["items"] = items
 
 
 def delete_item(idx: int):
-    items = st.session_state.items or []
+    items = force_items_list()
     if 0 <= idx < len(items):
         items.pop(idx)
-    st.session_state.items = items
+    st.session_state["items"] = items
 
 
 # =========================================================
@@ -188,7 +209,7 @@ def to_jpg_bytes(img: Image.Image, quality: int = 95) -> bytes:
 
 
 # =========================================================
-# 5) CSS (목업톤 + 가독성/크기 강화)
+# 5) CSS (가독성 + 목업톤)
 # =========================================================
 def inject_css():
     st.markdown(
@@ -217,15 +238,16 @@ def inject_css():
             font-size:13px;font-weight:800;
         }
         .ms-dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,#ff7aa2,#7ac7ff);}
-        .ms-title{font-size:42px;font-weight:950;letter-spacing:-0.8px;line-height:1.18;margin:0;color:#0f172a;}
+        .ms-title{font-size:40px;font-weight:950;letter-spacing:-0.8px;line-height:1.18;margin:0;color:#0f172a;}
         .ms-subtitle{font-size:17px;line-height:1.75;margin:10px 0 0 0;color:rgba(15,23,42,0.78);}
-        .ms-h2{font-size:24px;font-weight:950;margin:0 0 12px 0;color:#0f172a;}
+        .ms-h2{font-size:22px;font-weight:950;margin:0 0 12px 0;color:#0f172a;}
         .ms-body{font-size:16px;line-height:1.75;color:rgba(15,23,42,0.78);}
         .ms-mini{font-size:14px;line-height:1.7;color:rgba(15,23,42,0.66);}
         .ms-note{border:1px dashed rgba(15,23,42,0.18);border-radius:16px;padding:14px 14px;background:rgba(255,255,255,0.86);}
-        .ad-banner{border-radius:20px;border:1px solid rgba(15,23,42,0.10);background:linear-gradient(135deg,rgba(255,122,162,0.22),rgba(122,199,255,0.22));padding:22px 22px;}
-        .ad-title{font-size:26px;font-weight:950;margin:0 0 10px 0;color:#0f172a;}
-        .ms-file{font-size:15px;color:rgba(15,23,42,0.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:760px;}
+        .ad-banner{border-radius:20px;border:1px solid rgba(15,23,42,0.10);
+            background:linear-gradient(135deg,rgba(255,122,162,0.22),rgba(122,199,255,0.22));padding:20px 20px;}
+        .ad-title{font-size:20px;font-weight:950;margin:0 0 10px 0;color:#0f172a;}
+        .ms-file{font-size:15px;color:rgba(15,23,42,0.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:520px;}
         div.stButton>button, div.stDownloadButton>button{border-radius:14px !important;font-weight:950 !important;padding:0.70rem 1.10rem !important;border:1px solid rgba(15,23,42,0.14) !important;}
         .cta div.stButton>button{background:#0f172a !important;color:#ffffff !important;}
         </style>
@@ -235,7 +257,7 @@ def inject_css():
 
 
 # =========================================================
-# 6) UI (목업 배치)
+# 6) UI
 # =========================================================
 def header_area():
     left, right = st.columns([0.78, 0.22], vertical_alignment="center")
@@ -246,12 +268,13 @@ def header_area():
         )
     with right:
         if st.button("PRO신청", use_container_width=True):
-            st.session_state.show_pro_panel = not st.session_state.show_pro_panel
+            st.session_state["show_pro_panel"] = not st.session_state["show_pro_panel"]
 
-    if st.session_state.show_pro_panel:
+    if st.session_state["show_pro_panel"]:
         passwords = load_passwords_from_excel()
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.markdown('<div class="ms-h2">PRO신청</div>', unsafe_allow_html=True)
+
         if not passwords:
             st.error("비번리스트.xlsx를 찾지 못했습니다. app.py와 같은 위치(저장소 루트)에 업로드되어야 합니다.")
             st.markdown("</div>", unsafe_allow_html=True)
@@ -262,31 +285,42 @@ def header_area():
         with c1:
             if st.button("확인", use_container_width=True):
                 if pw and pw.strip() in passwords:
-                    st.session_state.is_pro = True
+                    st.session_state["is_pro"] = True
                     st.success("PRO 활성화 완료")
                 else:
                     st.error("비밀번호가 올바르지 않습니다.")
         with c2:
             st.markdown(f'<div class="ms-mini"><b>사용 및 PRO 문의 : {PRO_CONTACT_EMAIL}</b></div>', unsafe_allow_html=True)
-
         st.markdown("</div>", unsafe_allow_html=True)
 
 
-def ad_banner_area():
+def side_banner():
+    # ✅ 광고배너 “사이드(좌측)” 배치
     st.markdown(
         """
         <div class="ad-banner">
           <div class="ad-title">광고배너영역</div>
-          <div class="ms-body"><b>20년차 쇼핑몰 운영자가 현업에서 쓰려고 만든 상세페이지 업무툴</b>입니다. 빠르고, 깔끔하고, 실수 없이.</div>
-          <div style="height:10px"></div>
-          <div class="ms-mini">FREE로 먼저 써보시고, 필요할 때 PRO로 확장하세요. (상단 PRO신청 버튼)</div>
+          <div class="ms-body"><b>20년차 쇼핑몰 운영자가 현업에서 쓰려고 만든 상세페이지 업무툴</b>입니다.</div>
+          <div class="ms-mini" style="margin-top:8px;">빠르고, 깔끔하고, 실수 없이.</div>
+          <div class="ms-mini" style="margin-top:10px;">FREE로 먼저 써보시고, 필요할 때 PRO로 확장하세요.<br>(상단 PRO신청 버튼)</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-h2'>{PRO_TITLE}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-body'><b>{PRO_DESC}</b></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    for b in PRO_BULLETS:
+        st.markdown(f"<div class='ms-mini'>{b}</div>", unsafe_allow_html=True)
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-body'><b>{PRO_CLAIM}</b></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
-def title_and_howto_area():
+
+def main_title_block():
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
     st.markdown(f"<h1 class='ms-title'>{MAIN_TITLE}</h1>", unsafe_allow_html=True)
     st.markdown(f"<p class='ms-subtitle'>{MAIN_SUBTITLE}</p>", unsafe_allow_html=True)
@@ -297,11 +331,15 @@ def title_and_howto_area():
 
 def maker_area():
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
+    st.markdown("<div class='ms-h2'>상세페이지 생성</div>", unsafe_allow_html=True)
 
-    is_pro = st.session_state.is_pro
+    # ✅ 여기도 무조건 강제 정규화 (세션 꼬임 2중 방어)
+    items = force_items_list()
+
+    is_pro = st.session_state.get("is_pro", False)
     max_files = 30 if is_pro else 10
 
-    top = st.columns([0.45, 0.30, 0.25], vertical_alignment="bottom")
+    top = st.columns([0.40, 0.30, 0.30], vertical_alignment="bottom")
     with top[0]:
         st.markdown("<div class='ms-mini'><b>(JPG, PNG)</b></div>", unsafe_allow_html=True)
     with top[1]:
@@ -327,16 +365,15 @@ def maker_area():
         else:
             add_uploads(files, clear_first)
 
-    # 정규화 (TypeError 방지)
-    st.session_state.items = normalize_items(st.session_state.get("items"))
-    items: List[Item] = st.session_state.items
+    # 다시 정규화 후 사용
+    items = force_items_list()
 
     st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='ms-body'><b>업로드 파일명</b></div>", unsafe_allow_html=True)
 
     if items:
         for i, it in enumerate(items):
-            row = st.columns([0.62, 0.12, 0.12, 0.14], vertical_alignment="center")
+            row = st.columns([0.58, 0.14, 0.14, 0.14], vertical_alignment="center")
             with row[0]:
                 st.markdown(f"<div class='ms-file'>파일{i+1}  {it.name}</div>", unsafe_allow_html=True)
             with row[1]:
@@ -355,23 +392,31 @@ def maker_area():
         st.markdown("<div class='ms-mini'>업로드된 파일이 없습니다.</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    c1, c2 = st.columns([0.65, 0.35], vertical_alignment="center")
+    c1, c2, c3 = st.columns([0.52, 0.24, 0.24], vertical_alignment="center")
     with c1:
         st.markdown(f"<div class='ms-mini'><b>{FREE_PREVIEW_NOTICE}</b></div>", unsafe_allow_html=True)
     with c2:
         if st.button("초기화", use_container_width=True, key="reset"):
-            st.session_state.items = []
+            st.session_state["items"] = []
+            st.rerun()
+    with c3:
+        if st.button("세션 완전 초기화", use_container_width=True, key="hard_reset"):
+            reset_all_session()
             st.rerun()
 
     out_bytes = None
     if gen:
+        items = force_items_list()
         if not items:
             st.error("이미지를 먼저 업로드해 주세요.")
         else:
-            imgs = [load_image(it.data) for it in items]
-            out = build_detail_image(imgs, gap=gap, pad_top_bottom=100)
-            out_bytes = to_jpg_bytes(out, quality=95)
-            st.success("상세페이지 JPG 생성 완료")
+            try:
+                imgs = [load_image(it.data) for it in items]
+                out = build_detail_image(imgs, gap=gap, pad_top_bottom=100)
+                out_bytes = to_jpg_bytes(out, quality=95)
+                st.success("상세페이지 JPG 생성 완료")
+            except Exception as e:
+                st.error(f"생성 중 오류: {e}")
 
     if out_bytes:
         st.download_button(
@@ -401,22 +446,11 @@ def about_and_guide_area():
     st.markdown("</div>", unsafe_allow_html=True)
 
 
-def pro_area():
+def pro_tools_area():
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
-    st.markdown(f"<div class='ms-h2'>{PRO_TITLE}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='ms-body'><b>{PRO_DESC}</b></div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    for b in PRO_BULLETS:
-        st.markdown(f"<div class='ms-mini'>{b}</div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='ms-body'><b>{PRO_CLAIM}</b></div>", unsafe_allow_html=True)
-
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='ms-body'><b>{PRO_TOOL_TITLE}</b></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-h2'>{PRO_TOOL_TITLE}</div>", unsafe_allow_html=True)
 
     cols = st.columns(3)
     for i, (t, desc) in enumerate(PRO_TOOLS):
@@ -444,7 +478,7 @@ def footer_area():
 
 
 # =========================================================
-# 7) MAIN
+# 7) MAIN (✅ 목업 배치: 좌측 사이드(배너/PRO), 우측 메인)
 # =========================================================
 def main():
     init_state()
@@ -453,17 +487,22 @@ def main():
     header_area()
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
-    ad_banner_area()
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    # ✅ 광고배너 “사이드” 구현: 좌(배너/PRO) + 우(타이틀/업로드/안내)
+    left, right = st.columns([0.34, 0.66], vertical_alignment="top")
 
-    title_and_howto_area()
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    with left:
+        side_banner()
 
-    maker_area()
-    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+    with right:
+        main_title_block()
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
-    about_and_guide_area()
-    pro_area()
+        maker_area()
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+        about_and_guide_area()
+        pro_tools_area()
+
     footer_area()
 
 
