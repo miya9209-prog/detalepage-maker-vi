@@ -18,7 +18,8 @@ st.set_page_config(
 # CONSTANTS
 # =========================================================
 MAX_FILES = 10
-AD_W, AD_H = 300, 600
+AD_WIDTH = 300
+AD_HEIGHT = 600
 
 ASSETS_DIR = "assets"
 AD_LEFT_PATH = os.path.join(ASSETS_DIR, "ad_left.png")
@@ -29,68 +30,70 @@ TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 PRO_APPLY_URL = "#"
 
 # =========================================================
-# CSS (흰 배경 + 실서비스용 마감)
+# CSS (빈 박스 제거 + 섹션 간격 2배 + 라벨 제거)
 # =========================================================
 st.markdown(
-    """
+    f"""
 <style>
-:root{
-  --bg: #ffffff;
-  --card: #ffffff;
-  --border: #e6e8ef;
-  --text: #101828;
-  --muted: #667085;
-  --danger: #e11d48;
-  --primary: #111827;
-  --accent: #ffcc00;
-  --shadow: 0 10px 30px rgba(16,24,40,.07);
-  --radius: 14px;
-}
+:root{{
+  --bg:#ffffff;
+  --card:#ffffff;
+  --border:#e6e8ef;
+  --text:#101828;
+  --muted:#667085;
+  --danger:#e60012;
+  --primary:#111827;
+  --accent:#ffcc00;
+  --shadow:0 10px 30px rgba(16,24,40,.07);
+  --radius:14px;
 
-html, body, [class*="css"]  {
+  /* ✅ 섹션 간격 2배 */
+  --space-1: 16px;
+  --space-2: 24px;
+  --space-3: 32px;
+  --space-4: 40px;
+  --space-5: 56px;
+}}
+
+.stApp{{ background: var(--bg) !important; }}
+.block-container{{
+  max-width: 1250px;
+  padding-top: var(--space-3) !important;
+  padding-bottom: 70px !important;
+}}
+
+/* ---------- Global typography ---------- */
+html, body, [class*="css"] {{
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR",
                "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
-}
-
-.stApp{
-  background: #ffffff !important;
-}
-
-.block-container{
-  padding-top: 18px !important;
-  padding-bottom: 60px !important;
-  max-width: 1200px;
-}
+}}
 
 /* ---------- Header ---------- */
-.header-wrap{
-  background: #ffffff;
+.header-wrap{{
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 18px 18px 16px 18px;
+  padding: var(--space-3);
   box-shadow: var(--shadow);
-}
+}}
 
-.header-topline{
+.header-topline{{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap: 12px;
-}
+}}
 
-.brand-small{
+.brand-small{{
   font-size: 13px;
   font-weight: 900;
   color: #475467;
   letter-spacing: .2px;
-}
+}}
 
-.pro-btn a{
-  text-decoration:none;
-}
-
-.pro-btn .pill{
-  background: #111827;
+.pro-btn a{{ text-decoration:none; }}
+.pro-btn .pill{{
+  background: var(--primary);
   color: #fff;
   padding: 12px 18px;
   border-radius: 12px;
@@ -99,249 +102,254 @@ html, body, [class*="css"]  {
   min-width: 160px;
   text-align:center;
   box-shadow: 0 8px 18px rgba(17,24,39,.18);
-}
+}}
 
-.main-title{
-  margin-top: 8px;
+.main-title{{
+  margin-top: 10px;
   font-size: 34px;
   font-weight: 950;
   color: var(--text);
   text-align:center;
-}
+}}
 
-.sub-title{
-  margin-top: 6px;
+.sub-title{{
+  margin-top: 8px;
   text-align:center;
   font-size: 15px;
   font-weight: 900;
-  color: #e60012;
-}
+  color: var(--danger);
+}}
 
-.guide{
-  margin-top: 14px;
-  background: #ffffff;
+.guide{{
+  margin-top: var(--space-2);
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: var(--space-2);
   text-align:center;
   color: #344054;
-  font-weight: 800;
-  line-height: 1.5;
-}
+  font-weight: 850;
+  line-height: 1.55;
+}}
 
-/* ---------- Ads (이미지를 div 안에 "고정"하기 위한 구조) ---------- */
-.ad-box{
-  background: #ffffff;
+/* ---------- Top banner spacing ---------- */
+.top-banner-wrap{{
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: var(--shadow);
-  height: 600px;
   overflow:hidden;
-  position: relative;
-}
+  box-shadow: var(--shadow);
+}}
+.top-banner-wrap img{{
+  width:100%;
+  height:auto;
+  display:block;
+}}
 
-.ad-label{
-  position:absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(17,24,39,.82);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 950;
-  padding: 6px 10px;
-  border-radius: 999px;
-  z-index: 5;
-}
+/* ---------- Ads (라벨 삭제: ad-label 없음) ---------- */
+.ad-wrapper{{
+  display:flex;
+  justify-content:center;
+  margin-top: var(--space-3);
+}}
 
-.ad-inner{
+.ad-box{{
+  width:{AD_WIDTH}px;
+  height:{AD_HEIGHT}px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow: var(--shadow);
+}}
+
+.ad-box img{{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+}}
+
+.ad-empty{{
   width:100%;
   height:100%;
   display:flex;
   align-items:center;
   justify-content:center;
-}
-
-.ad-inner img{
-  width:100%;
-  height:100%;
-  object-fit: cover;
-  display:block;
-}
-
-.ad-empty{
-  color: #98A2B3;
-  font-weight: 950;
   text-align:center;
-  padding: 0 12px;
-  line-height: 1.35;
-}
+  padding: 14px;
+  color:#98A2B3;
+  font-weight: 900;
+  line-height:1.4;
+}}
 
 /* ---------- Work Area ---------- */
-.uploader-wrap{
-  background: #ffffff;
+.section-card{{
+  background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow);
-  padding: 18px;
-}
+  padding: var(--space-3);
+  margin-top: var(--space-3);
+}}
 
-.section-title{
-  font-size: 20px;
+.section-title{{
+  font-size: 22px;
   font-weight: 950;
   color: var(--text);
-  margin-bottom: 8px;
-}
+  margin-bottom: var(--space-1);
+}}
 
-.small-muted{
+.small-muted{{
   font-size: 13px;
   color: var(--muted);
-  font-weight: 750;
-}
+  font-weight: 800;
+}}
 
-.hr-soft{
+.hr-soft{{
   height:1px;
   background: var(--border);
-  margin: 14px 0 14px 0;
-}
+  margin: var(--space-2) 0 var(--space-2) 0;
+}}
 
-/* 업로더 위에 불필요한 여백/박스 느낌 줄이기 */
-div[data-testid="stFileUploader"]{
-  margin-top: 6px;
-}
+/* ✅ "파일선택 위 빈 흰박스" 원인 제거:
+   - file_uploader 라벨/설명/캡션/불필요 공간 정리
+*/
+div[data-testid="stFileUploader"] label {{
+  display:none !important;
+}}
+div[data-testid="stFileUploader"] section {{
+  padding-top: 0 !important;
+}}
+div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
+  display:none !important;
+}}
 
 /* 버튼 */
-.stButton>button{
+.stButton>button{{
   border-radius: 12px !important;
   font-weight: 950 !important;
-  height: 52px !important;
-}
-
-div[data-testid="stButton"]#generate_btn > button{
+  height: 54px !important;
+}}
+div[data-testid="stButton"]#generate_btn > button{{
   background: var(--accent) !important;
   color: #111 !important;
   border: 0 !important;
-}
-
-div[data-testid="stButton"]#reset_btn > button{
+}}
+div[data-testid="stButton"]#reset_btn > button{{
   background: #fff !important;
   color: #111 !important;
   border: 1px solid var(--border) !important;
-}
-
-div[data-testid="stDownloadButton"] > button{
-  background: #111827 !important;
+}}
+div[data-testid="stDownloadButton"] > button{{
+  background: var(--primary) !important;
   color: #fff !important;
   border: 0 !important;
-  height: 50px !important;
+  height: 52px !important;
   border-radius: 12px !important;
   font-weight: 950 !important;
-}
+}}
 
 /* 파일 리스트 */
-.file-name{
-  font-weight: 850;
+.file-name{{
+  font-weight: 900;
   color: #344054;
   font-size: 14px;
   overflow:hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 520px;
-}
-
-.small-btn button{
-  height: 38px !important;
+}}
+.small-btn button{{
+  height: 40px !important;
   min-width: 44px !important;
   padding: 0 12px !important;
   border-radius: 10px !important;
-  background: #111827 !important;
+  background: var(--primary) !important;
   color: #fff !important;
   font-weight: 950 !important;
-}
+}}
 
-/* Bottom marketing */
-.marketing{
-  margin-top: 26px;
+/* ---------- Bottom sections spacing 2배 ---------- */
+.marketing{{
+  margin-top: var(--space-5);
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 18px;
+  padding: var(--space-3);
   text-align:center;
-  color: #e60012;
+  color: var(--danger);
   font-weight: 900;
-  line-height: 1.6;
-}
-
-/* Tool cards */
-.tool-card{
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  line-height: 1.65;
   box-shadow: var(--shadow);
-  padding: 18px;
-  min-height: 150px;
-}
+}}
 
-.tool-title{
+.tool-title{{
   font-size: 16px;
   font-weight: 950;
   color: var(--text);
-  margin-bottom: 6px;
-}
-
-.tool-desc{
+  margin-bottom: 8px;
+}}
+.tool-desc{{
   font-size: 13px;
   color: #667085;
-  font-weight: 750;
-  line-height: 1.5;
-}
+  font-weight: 780;
+  line-height: 1.55;
+}}
+.tool-card{{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow: var(--shadow);
+  padding: var(--space-3);
+  min-height: 160px;
+}}
 
-/* Bottom CTA */
-.bottom-cta{
-  margin-top: 22px;
+.bottom-cta{{
   text-align:center;
-}
-
-.bottom-cta a{
-  text-decoration:none;
-  display:inline-block;
-  background:#111827;
+  margin-top: var(--space-4);
+}}
+.bottom-cta a{{
+  background: var(--primary);
   color:#fff;
   padding: 14px 42px;
   border-radius: 14px;
   font-weight: 950;
   font-size: 18px;
+  text-decoration:none;
+  display:inline-block;
   box-shadow: 0 10px 24px rgba(17,24,39,.22);
-}
+}}
 
-.contact-box{
-  margin-top: 18px;
+.contact-box{{
+  margin-top: var(--space-3);
   text-align:center;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 16px;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding: var(--space-3);
   box-shadow: var(--shadow);
-}
-
-.contact-box .label{
+}}
+.contact-box .label{{
   font-size: 16px;
   font-weight: 950;
-  color: #111827;
-}
-
-.contact-box .email{
+  color: var(--text);
+}}
+.contact-box .email{{
   font-size: 20px;
   font-weight: 950;
-  color: #e60012;
-}
+  color: var(--danger);
+  margin-top: 6px;
+}}
 
-.copyright{
-  margin-top: 18px;
+.copyright{{
+  margin-top: var(--space-3);
   text-align:center;
   font-size: 13px;
   color:#98A2B3;
   font-weight: 700;
-}
+}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -420,16 +428,14 @@ def img_to_data_uri(path: str) -> Optional[str]:
     except Exception:
         return None
 
-def render_ad_box(label: str, img_path: str) -> None:
+def render_ad_box(img_path: str) -> None:
     uri = img_to_data_uri(img_path)
+    st.markdown('<div class="ad-wrapper">', unsafe_allow_html=True)
     if uri:
         st.markdown(
             f"""
 <div class="ad-box">
-  <div class="ad-label">{label}</div>
-  <div class="ad-inner">
-    <img src="{uri}" alt="{label}">
-  </div>
+  <img src="{uri}" alt="ad">
 </div>
 """,
             unsafe_allow_html=True,
@@ -438,17 +444,16 @@ def render_ad_box(label: str, img_path: str) -> None:
         st.markdown(
             f"""
 <div class="ad-box">
-  <div class="ad-label">{label}</div>
-  <div class="ad-inner">
-    <div class="ad-empty">
-      광고배너 영역<br><br><b>{AD_W} x {AD_H}px</b><br><br>
-      {img_path}<br>업로드 시 자동 노출
-    </div>
+  <div class="ad-empty">
+    광고 이미지 없음<br><br>
+    <b>{AD_WIDTH} x {AD_HEIGHT}px</b><br>
+    {img_path}
   </div>
 </div>
 """,
             unsafe_allow_html=True,
         )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
 # HEADER
@@ -475,40 +480,41 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-
-# TOP BANNER (있는 경우에만 출력)
+# =========================================================
+# TOP BANNER
+# =========================================================
 top_uri = img_to_data_uri(TOP_BANNER_PATH)
 if top_uri:
     st.markdown(
         f"""
-<div style="border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow: var(--shadow);">
-  <img src="{top_uri}" style="width:100%; height:auto; display:block;" alt="top banner">
+<div class="top-banner-wrap">
+  <img src="{top_uri}" alt="top banner">
 </div>
 """,
         unsafe_allow_html=True,
     )
-
-st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+else:
+    st.markdown("<div style='height: var(--space-3);'></div>", unsafe_allow_html=True)
 
 # =========================================================
-# MAIN LAYOUT
+# MAIN LAYOUT (광고 300x600 유지)
 # =========================================================
-left_col, center_col, right_col = st.columns([1, 3, 1], gap="large")
+left_col, center_col, right_col = st.columns([1.2, 3, 1.2], gap="large")
 
 with left_col:
-    render_ad_box("광고배너", AD_LEFT_PATH)
+    render_ad_box(AD_LEFT_PATH)
 
 with right_col:
-    render_ad_box("광고배너", AD_RIGHT_PATH)
+    render_ad_box(AD_RIGHT_PATH)
 
 with center_col:
-    st.markdown("<div class='uploader-wrap'>", unsafe_allow_html=True)
+    st.markdown('<div class="section-card">', unsafe_allow_html=True)
 
-    st.markdown("<div class='section-title'>파일선택</div>", unsafe_allow_html=True)
-    st.markdown("<div class='small-muted'>JPG/PNG 파일을 업로드하세요. 최대 10개까지 가능합니다.</div>", unsafe_allow_html=True)
-    st.markdown("<div class='hr-soft'></div>", unsafe_allow_html=True)
+    st.markdown('<div class="section-title">파일선택</div>', unsafe_allow_html=True)
+    st.markdown('<div class="small-muted">JPG/PNG 파일을 업로드하세요. 최대 10개까지 가능합니다.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="hr-soft"></div>', unsafe_allow_html=True)
 
+    # ✅ label_visibility="collapsed" 유지 + CSS로 라벨 영역 제거
     uploaded = st.file_uploader(
         "이미지 업로드",
         type=["jpg", "jpeg", "png"],
@@ -518,6 +524,9 @@ with center_col:
     if uploaded:
         add_uploaded_files(uploaded)
 
+    # ✅ 섹션 간격 2배: 컨트롤 사이 여백 증가
+    st.markdown("<div style='height: var(--space-2);'></div>", unsafe_allow_html=True)
+
     cA, cB = st.columns([2, 1.2], gap="medium")
     with cA:
         gap = st.slider("이미지 간격 (0~100PX)", 0, 100, 50)
@@ -525,7 +534,7 @@ with center_col:
         st.markdown("<div id='generate_btn'></div>", unsafe_allow_html=True)
         generate_clicked = st.button("생성하기 (JPG)", use_container_width=True)
 
-    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: var(--space-2);'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title' style='font-size:16px;'>업로드 파일명</div>", unsafe_allow_html=True)
 
     if len(st.session_state["files"]) == 0:
@@ -558,9 +567,9 @@ with center_col:
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<div class='small-muted' style='margin-top:6px;'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='small-muted' style='margin-top: var(--space-2);'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: var(--space-3);'></div>", unsafe_allow_html=True)
     reset_cols = st.columns([1, 1, 1])
     with reset_cols[2]:
         st.markdown("<div id='reset_btn'></div>", unsafe_allow_html=True)
@@ -593,7 +602,7 @@ with center_col:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
-# BOTTOM SECTIONS
+# BOTTOM SECTIONS (간격 2배)
 # =========================================================
 st.markdown(
     """
@@ -606,13 +615,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: var(--space-4);'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
-<div style="background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px;">
+<div class="section-card">
   <div class="section-title">MS 상세페이지 생성기 사용안내</div>
-  <div style="color:#344054; font-weight:750; line-height:1.7; font-size:14px;">
+  <div style="color:#344054; font-weight:750; line-height:1.8; font-size:14px;">
     1. 사전에 보정작업을 마친 상세페이지용 이미지를 파일선택 버튼으로 선택(최대 10개 가능)<br>
     2. 이미지 간격 버튼 이용해 이미지간 간격 조정(0~100PX 선택 / 1개 상세페이지당 일괄 적용)<br>
     3. 생성하기 버튼 클릭하면 상세페이지 완성<br>
@@ -624,13 +633,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: var(--space-4);'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
-<div style="background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px;">
+<div class="section-card">
   <div class="section-title">PSD(고급객체 레이어)가 필요하신가요?</div>
-  <div style="color:#344054; font-weight:800; line-height:1.7; font-size:14px;">
+  <div style="color:#344054; font-weight:800; line-height:1.8; font-size:14px;">
     MS PRO는 수정 가능한 상세페이지 PSD 다운로드가 가능합니다. (레이어/고급객체 기반)<br><br>
     <span style="color:#e60012; font-weight:950;">→ PSD로 빠르고 해상도 높은 작업이 필요할 때</span><br>
     <span style="color:#e60012; font-weight:950;">→ 고급객체(SMART OBJECTS) 레이어 작업이 필요할 때</span><br>
@@ -643,12 +652,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height: var(--space-4);'></div>", unsafe_allow_html=True)
 
 st.markdown(
-    "<div class='section-title' style='font-size:24px; font-weight:950;'>PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다.</div>",
-    unsafe_allow_html=True
+    "<div class='section-title' style='font-size:24px; font-weight:950; margin-top:0;'>PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다.</div>",
+    unsafe_allow_html=True,
 )
+st.markdown("<div style='height: var(--space-2);'></div>", unsafe_allow_html=True)
 
 t1, t2, t3 = st.columns(3, gap="medium")
 with t1:
