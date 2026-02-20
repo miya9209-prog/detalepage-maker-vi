@@ -18,18 +18,22 @@ st.set_page_config(
 # CONSTANTS
 # =========================================================
 MAX_FILES = 10
-AD_WIDTH = 300
-AD_HEIGHT = 600
 
 ASSETS_DIR = "assets"
 AD_LEFT_PATH = os.path.join(ASSETS_DIR, "ad_left.png")
 AD_RIGHT_PATH = os.path.join(ASSETS_DIR, "ad_right.png")
 TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 
-PRO_APPLY_URL = "#"
+# 광고 원본 사이즈(제작 기준)
+AD_W = 300
+AD_H = 600
+
+# ✅ 광고/배너 클릭 링크
+MISHARP_URL = "https://www.misharp.co.kr"
+PRO_APPLY_URL = "#"  # 원하시는 PRO 링크로 변경
 
 # =========================================================
-# CSS (✅ 겹침 방지 핵심: ad-box width:100% + max-width:300px)
+# CSS (핵심: 광고 contain, file_uploader 빈 wrapper 제거)
 # =========================================================
 st.markdown(
     f"""
@@ -44,19 +48,13 @@ st.markdown(
   --primary:#111827;
   --accent:#ffcc00;
   --shadow:0 10px 30px rgba(16,24,40,.07);
-  --radius:14px;
 
-  /* spacing */
-  --s1:16px;
-  --s2:24px;
-  --s3:32px;
-  --s4:40px;
-  --s5:56px;
+  --s1:16px; --s2:24px; --s3:32px; --s4:40px; --s5:56px;
 }}
 
 .stApp{{ background: var(--bg) !important; }}
 .block-container{{
-  max-width: 1320px;           /* ✅ 좌/우 여유를 조금 더 줘서 안정화 */
+  max-width: 1320px;
   padding-top: var(--s3) !important;
   padding-bottom: 70px !important;
 }}
@@ -129,10 +127,10 @@ html, body, [class*="css"] {{
   background:#fff;
 }}
 
-/* ---------- ✅ Top banner: content 폭 기준 정확히 중앙 정렬 ---------- */
+/* ---------- Top banner ---------- */
 .top-banner-wrap{{
   margin: var(--s4) auto var(--s4) auto;
-  max-width: 1320px;          /* block-container와 동일 기준 */
+  max-width: 1320px;
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow:hidden;
@@ -143,8 +141,9 @@ html, body, [class*="css"] {{
   height:auto;
   display:block;
 }}
+.top-banner-wrap a{{ display:block; }}
 
-/* ---------- ✅ Ads: 겹침 완전 제거 ---------- */
+/* ---------- Ads (✅ 잘림 방지: contain) ---------- */
 .ad-wrapper{{
   width:100%;
   display:flex;
@@ -153,9 +152,9 @@ html, body, [class*="css"] {{
 }}
 
 .ad-box{{
-  width: 100%;               /* ✅ 컬럼 폭을 절대 넘지 않게 */
-  max-width: {AD_WIDTH}px;   /* ✅ 300px까지만 */
-  height: {AD_HEIGHT}px;
+  width: 100%;
+  max-width: {AD_W}px;
+  height: {AD_H}px;
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -163,10 +162,12 @@ html, body, [class*="css"] {{
   box-shadow: var(--shadow);
 }}
 
+.ad-box a{{ display:block; width:100%; height:100%; }}
 .ad-box img{{
   width:100%;
   height:100%;
-  object-fit: cover;
+  object-fit: contain;      /* ✅ cover → contain 으로 변경 (안 잘림) */
+  background:#ffffff;       /* contain 여백 색 */
   display:block;
 }}
 
@@ -212,12 +213,36 @@ html, body, [class*="css"] {{
   margin: var(--s2) 0 var(--s2) 0;
 }}
 
-/* file uploader 위쪽 라벨/설명 제거 */
+/* ✅ 업로더 라벨/불필요 markdown 제거 */
 div[data-testid="stFileUploader"] label {{
   display:none !important;
 }}
 div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
   display:none !important;
+}}
+
+/* ✅ "상단 큰 흰 네모 박스" 제거 핵심:
+   업로더 dropzone 외곽 wrapper가 커다란 흰 박스를 만들 때가 있어
+   배경/테두리/그림자/패딩을 강제로 제거
+*/
+div[data-testid="stFileUploader"] > div {{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}}
+/* dropzone 자체 스타일 정리 */
+div[data-testid="stFileUploaderDropzone"] {{
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}}
+/* 드롭존 내부의 "불필요한 상단 공간" 제거 */
+div[data-testid="stFileUploaderDropzone"] > div {{
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }}
 
 /* buttons */
@@ -429,7 +454,9 @@ def render_ad_box(img_path: str) -> None:
         st.markdown(
             f"""
 <div class="ad-box">
-  <img src="{uri}" alt="ad">
+  <a href="{MISHARP_URL}" target="_blank" rel="noopener">
+    <img src="{uri}" alt="ad">
+  </a>
 </div>
 """,
             unsafe_allow_html=True,
@@ -440,7 +467,7 @@ def render_ad_box(img_path: str) -> None:
 <div class="ad-box">
   <div class="ad-empty">
     광고 이미지 없음<br><br>
-    <b>{AD_WIDTH} x {AD_HEIGHT}px</b><br>
+    <b>{AD_W} x {AD_H}px</b><br>
     {img_path}
   </div>
 </div>
@@ -475,23 +502,23 @@ st.markdown(
 )
 
 # =========================================================
-# TOP BANNER (✅ 중앙/폭 기준 일치)
+# TOP BANNER (✅ 클릭시 misharp 이동)
 # =========================================================
 top_uri = img_to_data_uri(TOP_BANNER_PATH)
 if top_uri:
     st.markdown(
         f"""
 <div class="top-banner-wrap">
-  <img src="{top_uri}" alt="top banner">
+  <a href="{MISHARP_URL}" target="_blank" rel="noopener">
+    <img src="{top_uri}" alt="top banner">
+  </a>
 </div>
 """,
         unsafe_allow_html=True,
     )
-else:
-    st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
 # =========================================================
-# MAIN LAYOUT (✅ 겹침 방지 유지)
+# MAIN LAYOUT
 # =========================================================
 left_col, center_col, right_col = st.columns([1.2, 3, 1.2], gap="large")
 
