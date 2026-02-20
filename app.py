@@ -11,7 +11,7 @@ from PIL import Image
 # =========================================================
 # 0) PAGE / TITLE (요청: 타이틀 교체)
 # =========================================================
-APP_PAGE_TITLE = "misharp detalepage maker v1"  # ✅ 요청 반영
+APP_PAGE_TITLE = "misharp detalepage maker v1"
 st.set_page_config(
     page_title=APP_PAGE_TITLE,
     page_icon="🧷",
@@ -24,12 +24,11 @@ PRO_CONTACT_EMAIL = "misharpmail@naver.com"
 
 
 # =========================================================
-# 1) MOCKUP COPY (PDF 기반 고정)
+# 1) MOCKUP COPY (목업 기준 고정)
 # =========================================================
-BADGE_TEXT = "MISHARP DETAIL PAGE MAKER V1-FREE VERSION"  # 목업 상단 배지
+BADGE_TEXT = "MISHARP DETAIL PAGE MAKER V1-FREE VERSION"
 
-# 목업 하단에 있던 문구들이지만, 사용성을 위해 “메인 타이틀 영역”에 배치
-MAIN_TITLE = "misharp detalepage maker v1"  # ✅ 요청 반영 (기존 'MS 상세페이지 자동생성기 [FREE]' 대신)
+MAIN_TITLE = "misharp detalepage maker v1"
 MAIN_SUBTITLE = "상세페이지 이미지를 자동으로 생성하여 디자이너의 단순업무시간을 대폭 줄여드립니다."
 
 HOWTO_LINE = "*사용방법*  1. 이미지 업로드(최대 10개)  2. 이미지 간격 0~100PX 조정  3. 생성하기 버튼 클릭하면 끝!"
@@ -70,7 +69,7 @@ PRO_TOOLS = [
     ("이미지 자르기 툴", "간략설명"),
 ]
 
-FOOTER_COPY = "카피라이트 문구"
+FOOTER_COPY = "© MISHARP"
 
 
 # =========================================================
@@ -81,9 +80,10 @@ def load_passwords_from_excel() -> Set[str]:
     if not os.path.exists(PASSWORD_FILE):
         return set()
     df = pd.read_excel(PASSWORD_FILE)
-    # password 컬럼 있으면 사용, 없으면 첫 컬럼
+
     cols_lower = {str(c).strip().lower(): c for c in df.columns}
     col = cols_lower.get("password", df.columns[0])
+
     pw = (
         df[col].astype(str).str.strip()
         .replace({"nan": "", "None": "", "NONE": ""})
@@ -188,17 +188,13 @@ def to_jpg_bytes(img: Image.Image, quality: int = 95) -> bytes:
 
 
 # =========================================================
-# 5) CSS (목업 톤: 흰 바탕 + 부드러운 파스텔, 글씨 크게/또렷)
+# 5) CSS (목업톤 + 가독성/크기 강화)
 # =========================================================
 def inject_css():
     st.markdown(
         """
         <style>
-        .block-container{
-            max-width: 1240px;
-            padding-top: 18px;
-            padding-bottom: 52px;
-        }
+        .block-container{max-width:1240px;padding-top:18px;padding-bottom:52px;}
         [data-testid="stAppViewContainer"]{
             background:
                 radial-gradient(1100px 520px at 18% 0%, rgba(255, 228, 241, 0.75), transparent 60%),
@@ -206,88 +202,32 @@ def inject_css():
                 linear-gradient(180deg, #ffffff 0%, #fbfbfd 100%);
         }
         .ms-card{
-            border: 1px solid rgba(15, 23, 42, 0.10);
-            border-radius: 20px;
-            background: rgba(255,255,255,0.93);
-            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.07);
-            padding: 22px 22px;
+            border:1px solid rgba(15,23,42,0.10);
+            border-radius:20px;
+            background:rgba(255,255,255,0.93);
+            box-shadow:0 10px 30px rgba(2,6,23,0.07);
+            padding:22px 22px;
         }
         .ms-badge{
-            display:inline-flex; align-items:center; gap:8px;
-            padding:10px 14px; border-radius:999px;
-            background: rgba(255,255,255,0.92);
-            border: 1px solid rgba(15, 23, 42, 0.12);
-            color: rgba(15, 23, 42, 0.78);
-            font-size: 13px;
-            font-weight: 800;
+            display:inline-flex;align-items:center;gap:8px;
+            padding:10px 14px;border-radius:999px;
+            background:rgba(255,255,255,0.92);
+            border:1px solid rgba(15,23,42,0.12);
+            color:rgba(15,23,42,0.78);
+            font-size:13px;font-weight:800;
         }
         .ms-dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,#ff7aa2,#7ac7ff);}
-        .ms-title{
-            font-size: 42px;
-            font-weight: 950;
-            letter-spacing: -0.8px;
-            line-height: 1.18;
-            margin: 0;
-            color: #0f172a;
-        }
-        .ms-subtitle{
-            font-size: 17px;
-            line-height: 1.75;
-            margin: 10px 0 0 0;
-            color: rgba(15,23,42,0.78);
-        }
-        .ms-h2{
-            font-size: 24px;
-            font-weight: 950;
-            margin: 0 0 12px 0;
-            color: #0f172a;
-        }
-        .ms-body{
-            font-size: 16px;
-            line-height: 1.75;
-            color: rgba(15,23,42,0.78);
-        }
-        .ms-mini{
-            font-size: 14px;
-            line-height: 1.7;
-            color: rgba(15,23,42,0.66);
-        }
-        .ms-note{
-            border:1px dashed rgba(15,23,42,0.18);
-            border-radius:16px;
-            padding:14px 14px;
-            background: rgba(255,255,255,0.86);
-        }
-        .ad-banner{
-            border-radius: 20px;
-            border: 1px solid rgba(15,23,42,0.10);
-            background: linear-gradient(135deg, rgba(255,122,162,0.22), rgba(122,199,255,0.22));
-            padding: 22px 22px;
-        }
-        .ad-title{
-            font-size: 26px;
-            font-weight: 950;
-            margin: 0 0 10px 0;
-            color:#0f172a;
-        }
-        .ms-file{
-            font-size: 15px;
-            color: rgba(15,23,42,0.82);
-            overflow:hidden;
-            text-overflow:ellipsis;
-            white-space:nowrap;
-            max-width: 760px;
-        }
-        div.stButton>button, div.stDownloadButton>button{
-            border-radius: 14px !important;
-            font-weight: 950 !important;
-            padding: 0.70rem 1.10rem !important;
-            border: 1px solid rgba(15,23,42,0.14) !important;
-        }
-        .cta div.stButton>button{
-            background: #0f172a !important;
-            color: #ffffff !important;
-        }
+        .ms-title{font-size:42px;font-weight:950;letter-spacing:-0.8px;line-height:1.18;margin:0;color:#0f172a;}
+        .ms-subtitle{font-size:17px;line-height:1.75;margin:10px 0 0 0;color:rgba(15,23,42,0.78);}
+        .ms-h2{font-size:24px;font-weight:950;margin:0 0 12px 0;color:#0f172a;}
+        .ms-body{font-size:16px;line-height:1.75;color:rgba(15,23,42,0.78);}
+        .ms-mini{font-size:14px;line-height:1.7;color:rgba(15,23,42,0.66);}
+        .ms-note{border:1px dashed rgba(15,23,42,0.18);border-radius:16px;padding:14px 14px;background:rgba(255,255,255,0.86);}
+        .ad-banner{border-radius:20px;border:1px solid rgba(15,23,42,0.10);background:linear-gradient(135deg,rgba(255,122,162,0.22),rgba(122,199,255,0.22));padding:22px 22px;}
+        .ad-title{font-size:26px;font-weight:950;margin:0 0 10px 0;color:#0f172a;}
+        .ms-file{font-size:15px;color:rgba(15,23,42,0.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:760px;}
+        div.stButton>button, div.stDownloadButton>button{border-radius:14px !important;font-weight:950 !important;padding:0.70rem 1.10rem !important;border:1px solid rgba(15,23,42,0.14) !important;}
+        .cta div.stButton>button{background:#0f172a !important;color:#ffffff !important;}
         </style>
         """,
         unsafe_allow_html=True,
@@ -295,7 +235,7 @@ def inject_css():
 
 
 # =========================================================
-# 6) UI (목업 배치 그대로)
+# 6) UI (목업 배치)
 # =========================================================
 def header_area():
     left, right = st.columns([0.78, 0.22], vertical_alignment="center")
@@ -313,9 +253,10 @@ def header_area():
         st.markdown('<div class="ms-card">', unsafe_allow_html=True)
         st.markdown('<div class="ms-h2">PRO신청</div>', unsafe_allow_html=True)
         if not passwords:
-            st.error("비번리스트.xlsx를 찾지 못했습니다. 저장소 루트(app.py와 같은 위치)에 업로드되어야 합니다.")
+            st.error("비번리스트.xlsx를 찾지 못했습니다. app.py와 같은 위치(저장소 루트)에 업로드되어야 합니다.")
             st.markdown("</div>", unsafe_allow_html=True)
             return
+
         pw = st.text_input("비밀번호 입력", type="password", placeholder="발급받은 비밀번호 입력")
         c1, c2 = st.columns([0.32, 0.68], vertical_alignment="center")
         with c1:
@@ -327,11 +268,11 @@ def header_area():
                     st.error("비밀번호가 올바르지 않습니다.")
         with c2:
             st.markdown(f'<div class="ms-mini"><b>사용 및 PRO 문의 : {PRO_CONTACT_EMAIL}</b></div>', unsafe_allow_html=True)
+
         st.markdown("</div>", unsafe_allow_html=True)
 
 
 def ad_banner_area():
-    # 목업의 “광고배너영역”을 실제 배너로 구현
     st.markdown(
         """
         <div class="ad-banner">
@@ -357,7 +298,6 @@ def title_and_howto_area():
 def maker_area():
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
 
-    # 목업: (JPG, PNG) + 이미지간격(0~100PX) + 생성하기(JPG)
     is_pro = st.session_state.is_pro
     max_files = 30 if is_pro else 10
 
@@ -380,13 +320,14 @@ def maker_area():
         label_visibility="collapsed",
         key="uploader",
     )
+
     if files:
         if len(files) > max_files:
             st.warning(f"최대 {max_files}개까지 업로드 가능합니다. (현재 {len(files)}개)")
         else:
             add_uploads(files, clear_first)
 
-    # 세션 정규화 (TypeError 원천 차단)
+    # 정규화 (TypeError 방지)
     st.session_state.items = normalize_items(st.session_state.get("items"))
     items: List[Item] = st.session_state.items
 
@@ -422,7 +363,6 @@ def maker_area():
             st.session_state.items = []
             st.rerun()
 
-    # 생성 처리
     out_bytes = None
     if gen:
         if not items:
@@ -447,7 +387,6 @@ def maker_area():
 
 
 def about_and_guide_area():
-    # 목업의 “소개 + 사용안내”
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
     for line in ABOUT_BLOCK:
         st.markdown(f"<div class='ms-body'><b>{line}</b></div>", unsafe_allow_html=True)
@@ -468,11 +407,65 @@ def pro_area():
     st.markdown('<div class="ms-card">', unsafe_allow_html=True)
     st.markdown(f"<div class='ms-h2'>{PRO_TITLE}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='ms-body'><b>{PRO_DESC}</b></div>", unsafe_allow_html=True)
+
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     for b in PRO_BULLETS:
         st.markdown(f"<div class='ms-mini'>{b}</div>", unsafe_allow_html=True)
+
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     st.markdown(f"<div class='ms-body'><b>{PRO_CLAIM}</b></div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='ms-body'><b>{PRO_TOOL_TITLE}</b></div>", unsafe_allow
+    st.markdown(f"<div class='ms-body'><b>{PRO_TOOL_TITLE}</b></div>", unsafe_allow_html=True)
+
+    cols = st.columns(3)
+    for i, (t, desc) in enumerate(PRO_TOOLS):
+        with cols[i]:
+            st.markdown(
+                f"""
+                <div class="ms-note">
+                  <div class="ms-body"><b>{t}</b></div>
+                  <div class="ms-mini">{desc}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='ms-mini'><b>사용 및 PRO 문의 : {PRO_CONTACT_EMAIL}</b></div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def footer_area():
+    st.markdown(
+        f"<div class='ms-mini' style='text-align:center; padding: 18px 0;'>{FOOTER_COPY}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+# =========================================================
+# 7) MAIN
+# =========================================================
+def main():
+    init_state()
+    inject_css()
+
+    header_area()
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    ad_banner_area()
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    title_and_howto_area()
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    maker_area()
+    st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+    about_and_guide_area()
+    pro_area()
+    footer_area()
+
+
+if __name__ == "__main__":
+    main()
