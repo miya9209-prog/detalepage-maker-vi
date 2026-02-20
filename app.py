@@ -1,8 +1,9 @@
 import streamlit as st
 from PIL import Image
 import io
-from typing import List, Optional
 import os
+import base64
+from typing import List, Optional
 
 # =========================================================
 # PAGE CONFIG
@@ -24,17 +25,17 @@ AD_LEFT_PATH = os.path.join(ASSETS_DIR, "ad_left.png")
 AD_RIGHT_PATH = os.path.join(ASSETS_DIR, "ad_right.png")
 TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 
-# PRO 링크(원하시는 실제 링크로 교체하세요)
+# PRO 링크(원하시는 실제 링크로 교체)
 PRO_APPLY_URL = "#"
 
 # =========================================================
-# CSS (실서비스용 마감)
+# CSS (흰 배경 + 실서비스용 마감)
 # =========================================================
 st.markdown(
     """
 <style>
 :root{
-  --bg: #f6f7fb;
+  --bg: #ffffff;
   --card: #ffffff;
   --border: #e6e8ef;
   --text: #101828;
@@ -51,9 +52,8 @@ html, body, [class*="css"]  {
                "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
 }
 
-.stApp {
-  background: radial-gradient(1200px 600px at 20% 0%, rgba(255, 245, 248, 0.55) 0%,
-              rgba(246,247,251,1) 55%, rgba(240,248,255,0.35) 100%);
+.stApp{
+  background: #ffffff !important;
 }
 
 .block-container{
@@ -64,13 +64,11 @@ html, body, [class*="css"]  {
 
 /* ---------- Header ---------- */
 .header-wrap{
-  position: relative;
-  background: rgba(255,255,255,.72);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 18px 18px 16px 18px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(6px);
 }
 
 .header-topline{
@@ -82,14 +80,9 @@ html, body, [class*="css"]  {
 
 .brand-small{
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
   color: #475467;
   letter-spacing: .2px;
-}
-
-.pro-btn{
-  display:flex;
-  justify-content:flex-end;
 }
 
 .pro-btn a{
@@ -101,7 +94,7 @@ html, body, [class*="css"]  {
   color: #fff;
   padding: 12px 18px;
   border-radius: 12px;
-  font-weight: 900;
+  font-weight: 950;
   display:inline-block;
   min-width: 160px;
   text-align:center;
@@ -120,48 +113,29 @@ html, body, [class*="css"]  {
   margin-top: 6px;
   text-align:center;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 900;
   color: #e60012;
 }
 
 .guide{
   margin-top: 14px;
-  background: var(--card);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px 16px;
   text-align:center;
   color: #344054;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1.5;
 }
 
-/* ---------- Cards ---------- */
-.card{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 18px;
-}
-
-.section-title{
-  font-size: 20px;
-  font-weight: 950;
-  color: var(--text);
-  margin-bottom: 10px;
-}
-
-/* ---------- Ads ---------- */
+/* ---------- Ads (이미지를 div 안에 "고정"하기 위한 구조) ---------- */
 .ad-box{
-  background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,249,252,1) 100%);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow);
   height: 600px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
   overflow:hidden;
   position: relative;
 }
@@ -173,14 +147,30 @@ html, body, [class*="css"]  {
   background: rgba(17,24,39,.82);
   color: #fff;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 950;
   padding: 6px 10px;
   border-radius: 999px;
+  z-index: 5;
+}
+
+.ad-inner{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.ad-inner img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
 }
 
 .ad-empty{
   color: #98A2B3;
-  font-weight: 900;
+  font-weight: 950;
   text-align:center;
   padding: 0 12px;
   line-height: 1.35;
@@ -188,17 +178,24 @@ html, body, [class*="css"]  {
 
 /* ---------- Work Area ---------- */
 .uploader-wrap{
-  background: var(--card);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow);
   padding: 18px;
 }
 
+.section-title{
+  font-size: 20px;
+  font-weight: 950;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
 .small-muted{
   font-size: 13px;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 750;
 }
 
 .hr-soft{
@@ -207,28 +204,30 @@ html, body, [class*="css"]  {
   margin: 14px 0 14px 0;
 }
 
-/* Streamlit button tweaks */
+/* 업로더 위에 불필요한 여백/박스 느낌 줄이기 */
+div[data-testid="stFileUploader"]{
+  margin-top: 6px;
+}
+
+/* 버튼 */
 .stButton>button{
   border-radius: 12px !important;
   font-weight: 950 !important;
   height: 52px !important;
 }
 
-/* Generate button */
 div[data-testid="stButton"]#generate_btn > button{
   background: var(--accent) !important;
   color: #111 !important;
   border: 0 !important;
 }
 
-/* Reset button */
 div[data-testid="stButton"]#reset_btn > button{
   background: #fff !important;
   color: #111 !important;
   border: 1px solid var(--border) !important;
 }
 
-/* Download button */
 div[data-testid="stDownloadButton"] > button{
   background: #111827 !important;
   color: #fff !important;
@@ -238,9 +237,9 @@ div[data-testid="stDownloadButton"] > button{
   font-weight: 950 !important;
 }
 
-/* File list */
+/* 파일 리스트 */
 .file-name{
-  font-weight: 800;
+  font-weight: 850;
   color: #344054;
   font-size: 14px;
   overflow:hidden;
@@ -262,7 +261,7 @@ div[data-testid="stDownloadButton"] > button{
 /* Bottom marketing */
 .marketing{
   margin-top: 26px;
-  background: rgba(255,255,255,.75);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 18px;
@@ -274,7 +273,7 @@ div[data-testid="stDownloadButton"] > button{
 
 /* Tool cards */
 .tool-card{
-  background: var(--card);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow);
@@ -317,7 +316,7 @@ div[data-testid="stDownloadButton"] > button{
 .contact-box{
   margin-top: 18px;
   text-align:center;
-  background: rgba(255,255,255,.78);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 14px 16px;
@@ -367,14 +366,6 @@ def safe_open_image(file_bytes: bytes) -> Image.Image:
         img = img.convert("RGB")
     return img
 
-def load_image_if_exists(path: str) -> Optional[Image.Image]:
-    if os.path.exists(path):
-        try:
-            return Image.open(path)
-        except Exception:
-            return None
-    return None
-
 def add_uploaded_files(uploaded) -> None:
     if not uploaded:
         return
@@ -417,6 +408,48 @@ def build_stacked_image(images: List[Image.Image], gap: int) -> Image.Image:
         y += im.height + gap
     return canvas
 
+def img_to_data_uri(path: str) -> Optional[str]:
+    if not os.path.exists(path):
+        return None
+    try:
+        ext = os.path.splitext(path)[1].lower().replace(".", "")
+        mime = "png" if ext == "png" else "jpeg"
+        with open(path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("utf-8")
+        return f"data:image/{mime};base64,{b64}"
+    except Exception:
+        return None
+
+def render_ad_box(label: str, img_path: str) -> None:
+    uri = img_to_data_uri(img_path)
+    if uri:
+        st.markdown(
+            f"""
+<div class="ad-box">
+  <div class="ad-label">{label}</div>
+  <div class="ad-inner">
+    <img src="{uri}" alt="{label}">
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"""
+<div class="ad-box">
+  <div class="ad-label">{label}</div>
+  <div class="ad-inner">
+    <div class="ad-empty">
+      광고배너 영역<br><br><b>{AD_W} x {AD_H}px</b><br><br>
+      {img_path}<br>업로드 시 자동 노출
+    </div>
+  </div>
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
 # =========================================================
 # HEADER
 # =========================================================
@@ -442,34 +475,36 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-# Optional top banner
-top_banner = load_image_if_exists(TOP_BANNER_PATH)
-if top_banner is not None:
-    st.image(top_banner, use_container_width=True)
+# TOP BANNER (있는 경우에만 출력)
+top_uri = img_to_data_uri(TOP_BANNER_PATH)
+if top_uri:
+    st.markdown(
+        f"""
+<div style="border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow: var(--shadow);">
+  <img src="{top_uri}" style="width:100%; height:auto; display:block;" alt="top banner">
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
 # =========================================================
-# MAIN LAYOUT (Ads - Work - Ads)
+# MAIN LAYOUT
 # =========================================================
 left_col, center_col, right_col = st.columns([1, 3, 1], gap="large")
 
-# LEFT AD
 with left_col:
-    ad_left = load_image_if_exists(AD_LEFT_PATH)
-    st.markdown("<div class='ad-box'><div class='ad-label'>광고배너</div>", unsafe_allow_html=True)
-    if ad_left is not None:
-        st.image(ad_left, use_container_width=True)
-    else:
-        st.markdown(
-            f"<div class='ad-empty'>광고배너 영역<br><br><b>{AD_W} x {AD_H}px</b><br><br>assets/ad_left.png<br>업로드 시 자동 노출</div>",
-            unsafe_allow_html=True,
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
+    render_ad_box("광고배너", AD_LEFT_PATH)
 
-# CENTER WORK AREA
+with right_col:
+    render_ad_box("광고배너", AD_RIGHT_PATH)
+
 with center_col:
     st.markdown("<div class='uploader-wrap'>", unsafe_allow_html=True)
+
     st.markdown("<div class='section-title'>파일선택</div>", unsafe_allow_html=True)
     st.markdown("<div class='small-muted'>JPG/PNG 파일을 업로드하세요. 최대 10개까지 가능합니다.</div>", unsafe_allow_html=True)
     st.markdown("<div class='hr-soft'></div>", unsafe_allow_html=True)
@@ -483,7 +518,6 @@ with center_col:
     if uploaded:
         add_uploaded_files(uploaded)
 
-    # Gap + Generate row
     cA, cB = st.columns([2, 1.2], gap="medium")
     with cA:
         gap = st.slider("이미지 간격 (0~100PX)", 0, 100, 50)
@@ -499,20 +533,24 @@ with center_col:
     else:
         for i, (name, _bts, _img) in enumerate(st.session_state["files"]):
             row_cols = st.columns([6, 1.2, 1.2, 1.2], gap="small")
+
             with row_cols[0]:
                 st.markdown(f"<div class='file-name'>{i+1}. {name}</div>", unsafe_allow_html=True)
+
             with row_cols[1]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("▼", key=f"down_{i}", use_container_width=True):
                     move_file(i, +1)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
+
             with row_cols[2]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("▲", key=f"up_{i}", use_container_width=True):
                     move_file(i, -1)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
+
             with row_cols[3]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("X", key=f"remove_{i}", use_container_width=True):
@@ -522,7 +560,6 @@ with center_col:
 
         st.markdown("<div class='small-muted' style='margin-top:6px;'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
 
-    # Reset button
     st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     reset_cols = st.columns([1, 1, 1])
     with reset_cols[2]:
@@ -531,7 +568,6 @@ with center_col:
             reset_all()
             st.rerun()
 
-    # Generate logic
     if generate_clicked:
         if len(st.session_state["files"]) == 0:
             st.warning("먼저 이미지를 업로드해주세요.")
@@ -545,7 +581,6 @@ with center_col:
             st.session_state["result_filename"] = "detail_page.jpg"
             st.success("생성 완료! 바로 아래에서 저장하세요.")
 
-    # Save button appears directly under Generate area
     if st.session_state["result_bytes"]:
         st.download_button(
             label="저장하기",
@@ -555,23 +590,10 @@ with center_col:
             use_container_width=True,
         )
 
-    st.markdown("</div>", unsafe_allow_html=True)  # end uploader-wrap
-
-# RIGHT AD
-with right_col:
-    ad_right = load_image_if_exists(AD_RIGHT_PATH)
-    st.markdown("<div class='ad-box'><div class='ad-label'>광고배너</div>", unsafe_allow_html=True)
-    if ad_right is not None:
-        st.image(ad_right, use_container_width=True)
-    else:
-        st.markdown(
-            f"<div class='ad-empty'>광고배너 영역<br><br><b>{AD_W} x {AD_H}px</b><br><br>assets/ad_right.png<br>업로드 시 자동 노출</div>",
-            unsafe_allow_html=True,
-        )
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
-# MARKETING + GUIDE + PRO SECTION (하단)
+# BOTTOM SECTIONS
 # =========================================================
 st.markdown(
     """
@@ -588,7 +610,7 @@ st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
-<div class="card">
+<div style="background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px;">
   <div class="section-title">MS 상세페이지 생성기 사용안내</div>
   <div style="color:#344054; font-weight:750; line-height:1.7; font-size:14px;">
     1. 사전에 보정작업을 마친 상세페이지용 이미지를 파일선택 버튼으로 선택(최대 10개 가능)<br>
@@ -606,7 +628,7 @@ st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
 st.markdown(
     """
-<div class="card">
+<div style="background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px;">
   <div class="section-title">PSD(고급객체 레이어)가 필요하신가요?</div>
   <div style="color:#344054; font-weight:800; line-height:1.7; font-size:14px;">
     MS PRO는 수정 가능한 상세페이지 PSD 다운로드가 가능합니다. (레이어/고급객체 기반)<br><br>
@@ -671,9 +693,6 @@ with t3:
         unsafe_allow_html=True,
     )
 
-# =========================================================
-# ✅ 하단 PRO 신청 버튼 / 문의 이메일(크게) / 카피라이트
-# =========================================================
 st.markdown(
     f"""
 <div class="bottom-cta">
