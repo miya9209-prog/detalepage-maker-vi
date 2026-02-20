@@ -1,7 +1,7 @@
 import streamlit as st
 from PIL import Image
 import io
-from typing import List, Tuple, Optional
+from typing import List, Optional
 import os
 
 # =========================================================
@@ -24,13 +24,15 @@ AD_LEFT_PATH = os.path.join(ASSETS_DIR, "ad_left.png")
 AD_RIGHT_PATH = os.path.join(ASSETS_DIR, "ad_right.png")
 TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 
+# PRO 링크(원하시는 실제 링크로 교체하세요)
+PRO_APPLY_URL = "#"
+
 # =========================================================
 # CSS (실서비스용 마감)
 # =========================================================
 st.markdown(
     """
 <style>
-/* ---------- Global ---------- */
 :root{
   --bg: #f6f7fb;
   --card: #ffffff;
@@ -45,11 +47,13 @@ st.markdown(
 }
 
 html, body, [class*="css"]  {
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR",
+               "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
 }
 
 .stApp {
-  background: radial-gradient(1200px 600px at 20% 0%, rgba(255, 245, 248, 0.55) 0%, rgba(246,247,251,1) 55%, rgba(240,248,255,0.35) 100%);
+  background: radial-gradient(1200px 600px at 20% 0%, rgba(255, 245, 248, 0.55) 0%,
+              rgba(246,247,251,1) 55%, rgba(240,248,255,0.35) 100%);
 }
 
 .block-container{
@@ -78,25 +82,9 @@ html, body, [class*="css"]  {
 
 .brand-small{
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   color: #475467;
   letter-spacing: .2px;
-}
-
-.main-title{
-  margin-top: 8px;
-  font-size: 34px;
-  font-weight: 900;
-  color: var(--text);
-  text-align:center;
-}
-
-.sub-title{
-  margin-top: 6px;
-  text-align:center;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--danger);
 }
 
 .pro-btn{
@@ -113,11 +101,27 @@ html, body, [class*="css"]  {
   color: #fff;
   padding: 12px 18px;
   border-radius: 12px;
-  font-weight: 800;
+  font-weight: 900;
   display:inline-block;
   min-width: 160px;
   text-align:center;
   box-shadow: 0 8px 18px rgba(17,24,39,.18);
+}
+
+.main-title{
+  margin-top: 8px;
+  font-size: 34px;
+  font-weight: 950;
+  color: var(--text);
+  text-align:center;
+}
+
+.sub-title{
+  margin-top: 6px;
+  text-align:center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #e60012;
 }
 
 .guide{
@@ -128,7 +132,8 @@ html, body, [class*="css"]  {
   padding: 14px 16px;
   text-align:center;
   color: #344054;
-  font-weight: 650;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 /* ---------- Cards ---------- */
@@ -142,7 +147,7 @@ html, body, [class*="css"]  {
 
 .section-title{
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 950;
   color: var(--text);
   margin-bottom: 10px;
 }
@@ -168,20 +173,20 @@ html, body, [class*="css"]  {
   background: rgba(17,24,39,.82);
   color: #fff;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
   padding: 6px 10px;
   border-radius: 999px;
 }
 
 .ad-empty{
   color: #98A2B3;
-  font-weight: 800;
+  font-weight: 900;
   text-align:center;
   padding: 0 12px;
   line-height: 1.35;
 }
 
-/* ---------- Uploader ---------- */
+/* ---------- Work Area ---------- */
 .uploader-wrap{
   background: var(--card);
   border: 1px solid var(--border);
@@ -193,7 +198,7 @@ html, body, [class*="css"]  {
 .small-muted{
   font-size: 13px;
   color: var(--muted);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .hr-soft{
@@ -205,7 +210,7 @@ html, body, [class*="css"]  {
 /* Streamlit button tweaks */
 .stButton>button{
   border-radius: 12px !important;
-  font-weight: 850 !important;
+  font-weight: 950 !important;
   height: 52px !important;
 }
 
@@ -229,33 +234,19 @@ div[data-testid="stDownloadButton"] > button{
   color: #fff !important;
   border: 0 !important;
   height: 50px !important;
+  border-radius: 12px !important;
+  font-weight: 950 !important;
 }
 
-/* File list rows */
-.file-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 10px;
-}
-
+/* File list */
 .file-name{
-  font-weight: 750;
+  font-weight: 800;
   color: #344054;
   font-size: 14px;
   overflow:hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 520px;
-}
-
-.file-actions{
-  display:flex;
-  gap: 8px;
 }
 
 .small-btn button{
@@ -265,7 +256,7 @@ div[data-testid="stDownloadButton"] > button{
   border-radius: 10px !important;
   background: #111827 !important;
   color: #fff !important;
-  font-weight: 900 !important;
+  font-weight: 950 !important;
 }
 
 /* Bottom marketing */
@@ -277,13 +268,11 @@ div[data-testid="stDownloadButton"] > button{
   padding: 18px;
   text-align:center;
   color: #e60012;
-  font-weight: 800;
+  font-weight: 900;
+  line-height: 1.6;
 }
 
-.tools-wrap{
-  margin-top: 18px;
-}
-
+/* Tool cards */
 .tool-card{
   background: var(--card);
   border: 1px solid var(--border);
@@ -295,7 +284,7 @@ div[data-testid="stDownloadButton"] > button{
 
 .tool-title{
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 950;
   color: var(--text);
   margin-bottom: 6px;
 }
@@ -303,15 +292,56 @@ div[data-testid="stDownloadButton"] > button{
 .tool-desc{
   font-size: 13px;
   color: #667085;
-  font-weight: 650;
-  line-height: 1.45;
+  font-weight: 750;
+  line-height: 1.5;
 }
 
-.footer{
+/* Bottom CTA */
+.bottom-cta{
+  margin-top: 22px;
+  text-align:center;
+}
+
+.bottom-cta a{
+  text-decoration:none;
+  display:inline-block;
+  background:#111827;
+  color:#fff;
+  padding: 14px 42px;
+  border-radius: 14px;
+  font-weight: 950;
+  font-size: 18px;
+  box-shadow: 0 10px 24px rgba(17,24,39,.22);
+}
+
+.contact-box{
   margin-top: 18px;
-  color: #98A2B3;
-  font-size: 12px;
-  font-weight: 650;
+  text-align:center;
+  background: rgba(255,255,255,.78);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+
+.contact-box .label{
+  font-size: 16px;
+  font-weight: 950;
+  color: #111827;
+}
+
+.contact-box .email{
+  font-size: 20px;
+  font-weight: 950;
+  color: #e60012;
+}
+
+.copyright{
+  margin-top: 18px;
+  text-align:center;
+  font-size: 13px;
+  color:#98A2B3;
+  font-weight: 700;
 }
 </style>
 """,
@@ -328,7 +358,6 @@ if "result_bytes" not in st.session_state:
 if "result_filename" not in st.session_state:
     st.session_state["result_filename"] = "detail_page.jpg"
 
-
 # =========================================================
 # HELPERS
 # =========================================================
@@ -338,42 +367,33 @@ def safe_open_image(file_bytes: bytes) -> Image.Image:
         img = img.convert("RGB")
     return img
 
-
-def load_ad_image(path: str) -> Optional[Image.Image]:
+def load_image_if_exists(path: str) -> Optional[Image.Image]:
     if os.path.exists(path):
         try:
             return Image.open(path)
-        except:
+        except Exception:
             return None
     return None
 
-
 def add_uploaded_files(uploaded) -> None:
-    """Add new files to session_state['files'] without exceeding MAX_FILES"""
     if not uploaded:
         return
-
     for uf in uploaded:
         if len(st.session_state["files"]) >= MAX_FILES:
             break
-
         file_bytes = uf.read()
         try:
             img = safe_open_image(file_bytes)
-        except:
+        except Exception:
             continue
-
         st.session_state["files"].append((uf.name, file_bytes, img))
 
-
 def move_file(idx: int, direction: int) -> None:
-    """direction: -1 up, +1 down"""
     files = st.session_state["files"]
     new_idx = idx + direction
     if 0 <= idx < len(files) and 0 <= new_idx < len(files):
         files[idx], files[new_idx] = files[new_idx], files[idx]
         st.session_state["files"] = files
-
 
 def remove_file(idx: int) -> None:
     files = st.session_state["files"]
@@ -381,18 +401,15 @@ def remove_file(idx: int) -> None:
         files.pop(idx)
         st.session_state["files"] = files
 
-
 def reset_all() -> None:
     st.session_state["files"] = []
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
 
-
 def build_stacked_image(images: List[Image.Image], gap: int) -> Image.Image:
     widths, heights = zip(*(im.size for im in images))
     total_h = sum(heights) + gap * (len(images) - 1 if len(images) > 1 else 0)
     max_w = max(widths)
-
     canvas = Image.new("RGB", (max_w, total_h), (255, 255, 255))
     y = 0
     for im in images:
@@ -400,17 +417,16 @@ def build_stacked_image(images: List[Image.Image], gap: int) -> Image.Image:
         y += im.height + gap
     return canvas
 
-
 # =========================================================
 # HEADER
 # =========================================================
 st.markdown(
-    """
+    f"""
 <div class="header-wrap">
   <div class="header-topline">
     <div class="brand-small">MISHARP DETAIL PAGE MAKER V1 - FREE VERSION</div>
     <div class="pro-btn">
-      <a href="#" target="_blank"><span class="pill">PRO신청</span></a>
+      <a href="{PRO_APPLY_URL}" target="_blank"><span class="pill">PRO신청</span></a>
     </div>
   </div>
 
@@ -426,10 +442,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
 # Optional top banner
-top_banner = load_ad_image(TOP_BANNER_PATH)
+top_banner = load_image_if_exists(TOP_BANNER_PATH)
 if top_banner is not None:
     st.image(top_banner, use_container_width=True)
 
@@ -438,15 +454,12 @@ if top_banner is not None:
 # =========================================================
 left_col, center_col, right_col = st.columns([1, 3, 1], gap="large")
 
-
-# -----------------------------
 # LEFT AD
-# -----------------------------
 with left_col:
-    ad_img = load_ad_image(AD_LEFT_PATH)
+    ad_left = load_image_if_exists(AD_LEFT_PATH)
     st.markdown("<div class='ad-box'><div class='ad-label'>광고배너</div>", unsafe_allow_html=True)
-    if ad_img is not None:
-        st.image(ad_img, use_container_width=True)
+    if ad_left is not None:
+        st.image(ad_left, use_container_width=True)
     else:
         st.markdown(
             f"<div class='ad-empty'>광고배너 영역<br><br><b>{AD_W} x {AD_H}px</b><br><br>assets/ad_left.png<br>업로드 시 자동 노출</div>",
@@ -454,10 +467,7 @@ with left_col:
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
-
-# -----------------------------
 # CENTER WORK AREA
-# -----------------------------
 with center_col:
     st.markdown("<div class='uploader-wrap'>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>파일선택</div>", unsafe_allow_html=True)
@@ -470,7 +480,6 @@ with center_col:
         accept_multiple_files=True,
         label_visibility="collapsed",
     )
-
     if uploaded:
         add_uploaded_files(uploaded)
 
@@ -482,35 +491,28 @@ with center_col:
         st.markdown("<div id='generate_btn'></div>", unsafe_allow_html=True)
         generate_clicked = st.button("생성하기 (JPG)", use_container_width=True)
 
-    st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-
-    # File list
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title' style='font-size:16px;'>업로드 파일명</div>", unsafe_allow_html=True)
 
     if len(st.session_state["files"]) == 0:
         st.info("아직 업로드된 파일이 없습니다.")
     else:
-        # Show file rows with actions
-        for i, (name, bts, img) in enumerate(st.session_state["files"]):
+        for i, (name, _bts, _img) in enumerate(st.session_state["files"]):
             row_cols = st.columns([6, 1.2, 1.2, 1.2], gap="small")
-
             with row_cols[0]:
                 st.markdown(f"<div class='file-name'>{i+1}. {name}</div>", unsafe_allow_html=True)
-
             with row_cols[1]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("▼", key=f"down_{i}", use_container_width=True):
                     move_file(i, +1)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
-
             with row_cols[2]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("▲", key=f"up_{i}", use_container_width=True):
                     move_file(i, -1)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
-
             with row_cols[3]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("X", key=f"remove_{i}", use_container_width=True):
@@ -520,9 +522,8 @@ with center_col:
 
         st.markdown("<div class='small-muted' style='margin-top:6px;'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-
     # Reset button
+    st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     reset_cols = st.columns([1, 1, 1])
     with reset_cols[2]:
         st.markdown("<div id='reset_btn'></div>", unsafe_allow_html=True)
@@ -544,7 +545,7 @@ with center_col:
             st.session_state["result_filename"] = "detail_page.jpg"
             st.success("생성 완료! 바로 아래에서 저장하세요.")
 
-    # Save button appears directly under Generate area (요청사항)
+    # Save button appears directly under Generate area
     if st.session_state["result_bytes"]:
         st.download_button(
             label="저장하기",
@@ -556,15 +557,12 @@ with center_col:
 
     st.markdown("</div>", unsafe_allow_html=True)  # end uploader-wrap
 
-
-# -----------------------------
 # RIGHT AD
-# -----------------------------
 with right_col:
-    ad_img = load_ad_image(AD_RIGHT_PATH)
+    ad_right = load_image_if_exists(AD_RIGHT_PATH)
     st.markdown("<div class='ad-box'><div class='ad-label'>광고배너</div>", unsafe_allow_html=True)
-    if ad_img is not None:
-        st.image(ad_img, use_container_width=True)
+    if ad_right is not None:
+        st.image(ad_right, use_container_width=True)
     else:
         st.markdown(
             f"<div class='ad-empty'>광고배너 영역<br><br><b>{AD_W} x {AD_H}px</b><br><br>assets/ad_right.png<br>업로드 시 자동 노출</div>",
@@ -592,13 +590,12 @@ st.markdown(
     """
 <div class="card">
   <div class="section-title">MS 상세페이지 생성기 사용안내</div>
-  <div style="color:#344054; font-weight:650; line-height:1.65; font-size:14px;">
+  <div style="color:#344054; font-weight:750; line-height:1.7; font-size:14px;">
     1. 사전에 보정작업을 마친 상세페이지용 이미지를 파일선택 버튼으로 선택(최대 10개 가능)<br>
     2. 이미지 간격 버튼 이용해 이미지간 간격 조정(0~100PX 선택 / 1개 상세페이지당 일괄 적용)<br>
-    3. 상세페이지 생성 시 최상단과 최하단은 100PX 여백으로 고정 생성<br>
-    4. 생성하기 버튼 클릭하면 상세페이지 완성<br>
-    5. 상세페이지 내 텍스트를 구성하고자 하는 경우 텍스트 편집된 JPG 이미지를 만들어 추가하는 방식으로 활용<br>
-    6. 새 작업을 시작하기 위해서는 초기화를 클릭
+    3. 생성하기 버튼 클릭하면 상세페이지 완성<br>
+    4. 상세페이지 내 텍스트를 구성하고자 하는 경우 텍스트 편집된 JPG 이미지를 만들어 추가하는 방식으로 활용<br>
+    5. 새 작업을 시작하기 위해서는 초기화를 클릭
   </div>
 </div>
 """,
@@ -611,12 +608,12 @@ st.markdown(
     """
 <div class="card">
   <div class="section-title">PSD(고급객체 레이어)가 필요하신가요?</div>
-  <div style="color:#344054; font-weight:700; line-height:1.65; font-size:14px;">
+  <div style="color:#344054; font-weight:800; line-height:1.7; font-size:14px;">
     MS PRO는 수정 가능한 상세페이지 PSD 다운로드가 가능합니다. (레이어/고급객체 기반)<br><br>
-    <span style="color:#e60012; font-weight:900;">→ PSD로 빠르고 해상도 높은 작업이 필요할 때</span><br>
-    <span style="color:#e60012; font-weight:900;">→ 고급객체(SMART OBJECTS) 레이어 작업이 필요할 때</span><br>
-    <span style="color:#e60012; font-weight:900;">→ 반복적인 템플릿이 필요할 때</span><br>
-    <span style="color:#e60012; font-weight:900;">→ 업로드 파일 미리보기 제공 등 좀 더 다양한 기능이 필요할 때</span><br><br>
+    <span style="color:#e60012; font-weight:950;">→ PSD로 빠르고 해상도 높은 작업이 필요할 때</span><br>
+    <span style="color:#e60012; font-weight:950;">→ 고급객체(SMART OBJECTS) 레이어 작업이 필요할 때</span><br>
+    <span style="color:#e60012; font-weight:950;">→ 반복적인 템플릿이 필요할 때</span><br>
+    <span style="color:#e60012; font-weight:950;">→ 업로드 파일 미리보기 제공 등 좀 더 다양한 기능이 필요할 때</span><br><br>
     MS PRO는 상세페이지 웹디자이너에게 최고의 도구가 되어줍니다.
   </div>
 </div>
@@ -626,7 +623,10 @@ st.markdown(
 
 st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-st.markdown("<div class='section-title' style='font-size:24px; font-weight:900;'>PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다.</div>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='section-title' style='font-size:24px; font-weight:950;'>PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다.</div>",
+    unsafe_allow_html=True
+)
 
 t1, t2, t3 = st.columns(3, gap="medium")
 with t1:
@@ -671,4 +671,23 @@ with t3:
         unsafe_allow_html=True,
     )
 
-st.markdown("<div class='footer'>사용 및 PRO 문의 : misharpmail@naver.com</div>", unsafe_allow_html=True)
+# =========================================================
+# ✅ 하단 PRO 신청 버튼 / 문의 이메일(크게) / 카피라이트
+# =========================================================
+st.markdown(
+    f"""
+<div class="bottom-cta">
+  <a href="{PRO_APPLY_URL}" target="_blank">PRO 신청하기</a>
+</div>
+
+<div class="contact-box">
+  <div class="label">사용 및 PRO 문의</div>
+  <div class="email">misharpmail@naver.com</div>
+</div>
+
+<div class="copyright">
+  © 2006-2026 MISHARP. All Rights Reserved.
+</div>
+""",
+    unsafe_allow_html=True,
+)
