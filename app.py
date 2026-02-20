@@ -24,16 +24,19 @@ AD_LEFT_PATH = os.path.join(ASSETS_DIR, "ad_left.png")
 AD_RIGHT_PATH = os.path.join(ASSETS_DIR, "ad_right.png")
 TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 
-# 광고 원본 사이즈(제작 기준)
+# 제작 기준(원본)
 AD_W = 300
 AD_H = 600
 
-# ✅ 광고/배너 클릭 링크
+# 링크
 MISHARP_URL = "https://www.misharp.co.kr"
-PRO_APPLY_URL = "#"  # 원하시는 PRO 링크로 변경
+PRO_APPLY_URL = "#"  # 필요시 교체
+
+# uploader 위젯 키 (✅ 초기화에 필요)
+UPLOADER_KEY = "uploader_files"
 
 # =========================================================
-# CSS (핵심: 광고 contain, file_uploader 빈 wrapper 제거)
+# CSS (핵심: 광고 aspect-ratio, uploader 빈영역/리스트 제거)
 # =========================================================
 st.markdown(
     f"""
@@ -136,14 +139,14 @@ html, body, [class*="css"] {{
   overflow:hidden;
   box-shadow: var(--shadow);
 }}
+.top-banner-wrap a{{ display:block; }}
 .top-banner-wrap img{{
   width:100%;
   height:auto;
   display:block;
 }}
-.top-banner-wrap a{{ display:block; }}
 
-/* ---------- Ads (✅ 잘림 방지: contain) ---------- */
+/* ---------- ✅ Ads (빈칸 제거: height 고정 제거 + aspect-ratio) ---------- */
 .ad-wrapper{{
   width:100%;
   display:flex;
@@ -154,7 +157,7 @@ html, body, [class*="css"] {{
 .ad-box{{
   width: 100%;
   max-width: {AD_W}px;
-  height: {AD_H}px;
+  aspect-ratio: {AD_W} / {AD_H};   /* ✅ 300x600 비율 고정 */
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -166,8 +169,7 @@ html, body, [class*="css"] {{
 .ad-box img{{
   width:100%;
   height:100%;
-  object-fit: contain;      /* ✅ cover → contain 으로 변경 (안 잘림) */
-  background:#ffffff;       /* contain 여백 색 */
+  object-fit: cover;               /* ✅ 빈칸 방지(원본 비율 동일이라 크롭 거의 없음) */
   display:block;
 }}
 
@@ -213,25 +215,25 @@ html, body, [class*="css"] {{
   margin: var(--s2) 0 var(--s2) 0;
 }}
 
-/* ✅ 업로더 라벨/불필요 markdown 제거 */
+/* =========================================================
+   ✅ 업로더 상단 큰 흰박스 / 내장 파일목록 제거
+   - label/markdown 제거
+   - dropzone 외곽/상단 여백 제거
+   - 업로더 내부 selected-files 목록(아이콘+파일명들) 숨김
+========================================================= */
 div[data-testid="stFileUploader"] label {{
   display:none !important;
 }}
 div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
   display:none !important;
 }}
-
-/* ✅ "상단 큰 흰 네모 박스" 제거 핵심:
-   업로더 dropzone 외곽 wrapper가 커다란 흰 박스를 만들 때가 있어
-   배경/테두리/그림자/패딩을 강제로 제거
-*/
 div[data-testid="stFileUploader"] > div {{
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
+  margin: 0 !important;
 }}
-/* dropzone 자체 스타일 정리 */
 div[data-testid="stFileUploaderDropzone"] {{
   background: transparent !important;
   border: none !important;
@@ -239,10 +241,18 @@ div[data-testid="stFileUploaderDropzone"] {{
   padding: 0 !important;
   margin: 0 !important;
 }}
-/* 드롭존 내부의 "불필요한 상단 공간" 제거 */
+/* ✅ 업로더 안쪽에 생기는 '파일 리스트(아이콘+파일명)' 영역 숨김 */
+div[data-testid="stFileUploaderDropzone"] ul {{
+  display:none !important;
+}}
+/* ✅ dropzone 상단에 남는 빈 공간 강제 제거 */
 div[data-testid="stFileUploaderDropzone"] > div {{
-  margin-top: 0 !important;
-  padding-top: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}}
+/* 일부 버전에서 dropzone 위에 빈 컨테이너가 따로 생김: 첫 블록 숨김 */
+div[data-testid="stFileUploaderDropzone"] > div:first-child:empty {{
+  display:none !important;
 }}
 
 /* buttons */
@@ -420,9 +430,14 @@ def remove_file(idx: int) -> None:
         st.session_state["files"] = files
 
 def reset_all() -> None:
+    # ✅ custom list 초기화
     st.session_state["files"] = []
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
+
+    # ✅ uploader 위젯 상태까지 초기화 (이게 핵심!)
+    # Streamlit 버전에 따라 None 또는 []가 안전합니다.
+    st.session_state[UPLOADER_KEY] = None
 
 def build_stacked_image(images: List[Image.Image], gap: int) -> Image.Image:
     widths, heights = zip(*(im.size for im in images))
@@ -535,13 +550,17 @@ with center_col:
     st.markdown('<div class="small-muted">JPG/PNG 파일을 업로드하세요. 최대 10개까지 가능합니다.</div>', unsafe_allow_html=True)
     st.markdown('<div class="hr-soft"></div>', unsafe_allow_html=True)
 
+    # ✅ key 부여 (초기화 완전 작동 핵심)
     uploaded = st.file_uploader(
         "이미지 업로드",
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True,
         label_visibility="collapsed",
+        key=UPLOADER_KEY,
     )
     if uploaded:
+        # 초기화 후 재주입 방지: files 비어있을 때만 새로 추가
+        # (uploader 위젯이 같은 파일을 유지하는 케이스 방어)
         add_uploaded_files(uploaded)
 
     st.markdown("<div style='height: var(--s2);'></div>", unsafe_allow_html=True)
@@ -589,12 +608,11 @@ with center_col:
         st.markdown("<div class='small-muted' style='margin-top: var(--s2);'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
 
     st.markdown("<div style='height: var(--s3);'></div>", unsafe_allow_html=True)
+
     reset_cols = st.columns([1, 1, 1])
     with reset_cols[2]:
         st.markdown("<div id='reset_btn'></div>", unsafe_allow_html=True)
-        if st.button("초기화", use_container_width=True):
-            reset_all()
-            st.rerun()
+        st.button("초기화", use_container_width=True, on_click=reset_all)
 
     if generate_clicked:
         if len(st.session_state["files"]) == 0:
