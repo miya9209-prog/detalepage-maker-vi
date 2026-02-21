@@ -26,9 +26,7 @@ AD_RIGHT_PATH = os.path.join(ASSETS_DIR, "ad_right.png")
 TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 
 AD_W = 300
-AD_H = 600  # (유지: 필요시 다시 고정으로 되돌릴 수 있게 남김)
-
-TOP_BANNER_H = 160  # 탑배너 양옆 여백 방지용 cover 높이
+TOP_BANNER_H = 160
 
 MISHARP_URL = "https://www.misharp.co.kr"
 PRO_APPLY_URL = "https://www.misharp.co.kr"
@@ -62,7 +60,7 @@ if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
-# CSS (실서비스 마감)
+# CSS
 # =========================================================
 st.markdown(
     f"""
@@ -92,28 +90,30 @@ html, body, [class*="css"] {{
 }}
 
 /* =========================================================
-   ✅ 1) 파일선택 위 "흰박스(텍스트/검색 인풋)" 완전 제거
-   - Streamlit DOM에서 stTextInput이 아니라 baseweb input으로 뜨는 케이스 대응
-   - 이 앱은 텍스트/검색 인풋이 필요 없으니 전부 숨김
-   - file_uploader는 type="file"이라 영향 없음
+   ✅ 파일선택 위 '흰 박스' 100% 제거 (가운데 work-area 내부만)
+   - Streamlit/baseweb에서 type 없는 input(기본 text) 또는 base-input으로 뜨는 케이스 대응
+   - file/range/button 등은 제외
    ========================================================= */
-input[type="text"],
-input[type="search"] {{
-  display: none !important;
+.work-area input:not([type]),
+.work-area input[type="text"],
+.work-area input[type="search"] {{
+  display:none !important;
 }}
-div[data-baseweb="input"] {{
-  display: none !important;
+/* baseweb input wrapper(흰 박스)도 같이 제거 */
+.work-area div[data-baseweb="input"],
+.work-area div[data-baseweb="base-input"] {{
+  display:none !important;
 }}
 
-/* 혹시 stTextInput으로 뜨는 경우도 같이 차단 */
-div[data-testid="stTextInput"],
-div[data-testid="stTextInputRoot"],
-div[data-testid="stTextInputContainer"] {{
-  display: none !important;
-  height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
+/* 혹시 stTextInput으로 렌더링되는 경우도 차단 */
+.work-area div[data-testid="stTextInput"],
+.work-area div[data-testid="stTextInputRoot"],
+.work-area div[data-testid="stTextInputContainer"] {{
+  display:none !important;
+  height:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
 }}
 
 /* ---------- Header ---------- */
@@ -183,30 +183,28 @@ div[data-testid="stTextInputContainer"] {{
   border-radius: 14px;
   overflow:hidden;
   box-shadow: var(--shadow);
-  height: {TOP_BANNER_H}px; /* ✅ 양옆 여백 방지 */
+  height: {TOP_BANNER_H}px;
 }}
 .top-banner-wrap a{{ display:block; width:100%; height:100%; }}
 .top-banner-wrap img{{
   width:100%;
   height:100%;
-  object-fit: cover;        /* ✅ 꽉 채움 */
+  object-fit: cover;
   object-position: center;
   display:block;
 }}
 
-/* ---------- Ads ---------- */
+/* ---------- Ads (전체 이미지 보이게) ---------- */
 .ad-wrapper{{
   width:100%;
   display:flex;
   justify-content:center;
   margin-top: var(--s4);
 }}
-
-/* ✅ [수정] 광고 박스 높이를 이미지에 맞게 자동으로 (틀-이미지 mismatch 해결) */
 .ad-box{{
   width: 100%;
-  max-width: {AD_W}px;
-  height: auto;                 /* ✅ 고정 600px 제거 */
+  max-width: 300px;
+  height: auto;
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -214,12 +212,10 @@ div[data-testid="stTextInputContainer"] {{
   box-shadow: var(--shadow);
 }}
 .ad-box a{{ display:block; width:100%; }}
-
-/* ✅ [수정] 가로 잘림 방지: 이미지 전체 노출 */
 .ad-box img{{
   width:100%;
   height:auto;
-  object-fit: contain;          /* ✅ 가로 잘림 없음 */
+  object-fit: contain;
   object-position: center;
   display:block;
 }}
@@ -250,13 +246,9 @@ div[data-testid="stTextInputContainer"] {{
   margin: var(--s2) 0 var(--s2) 0;
 }}
 
-/* ---------- File uploader: 불필요한 라벨/빈 영역 제거 ---------- */
-div[data-testid="stFileUploader"] label {{
-  display:none !important;
-}}
-div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
-  display:none !important;
-}}
+/* ---------- File uploader ---------- */
+div[data-testid="stFileUploader"] label {{ display:none !important; }}
+div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{ display:none !important; }}
 div[data-testid="stFileUploader"] > div {{
   background: transparent !important;
   border: none !important;
@@ -271,12 +263,8 @@ div[data-testid="stFileUploaderDropzone"] {{
   background: #0b1220 !important;
   padding: 18px !important;
 }}
-div[data-testid="stFileUploaderDropzone"] * {{
-  color: #fff !important;
-}}
-div[data-testid="stFileUploaderDropzone"] ul {{
-  display:none !important;
-}}
+div[data-testid="stFileUploaderDropzone"] * {{ color: #fff !important; }}
+div[data-testid="stFileUploaderDropzone"] ul {{ display:none !important; }}
 div[data-testid="stFileUploaderDropzone"] button {{
   background: rgba(255,255,255,.08) !important;
   border: 1px solid rgba(255,255,255,.18) !important;
@@ -302,17 +290,8 @@ div[data-testid="stFileUploaderDropzone"] button:hover {{
   color: #fff !important;
   filter: brightness(0.92) !important;
 }}
-.stButton>button:active{{
-  background: var(--primary) !important;
-  color: #fff !important;
-  filter: brightness(0.88) !important;
-}}
-.stButton>button:focus{{
-  outline: none !important;
-  box-shadow: 0 0 0 3px rgba(17,24,39,.12) !important;
-}}
 
-/* 다운로드 버튼 동일 */
+/* 다운로드 버튼 */
 div[data-testid="stDownloadButton"] > button{{
   background: var(--primary) !important;
   color: #fff !important;
@@ -352,7 +331,7 @@ div[data-testid="stDownloadButton"] > button:hover{{
   filter: brightness(0.92) !important;
 }}
 
-/* ---------- Bottom sections ---------- */
+/* ---------- Bottom ---------- */
 .marketing{{
   margin-top: var(--s5);
   background:#fff;
@@ -572,6 +551,9 @@ with right_col:
     render_ad_box(AD_RIGHT_PATH)
 
 with center_col:
+    # ✅ work-area 래퍼 추가 (여기 안에서만 텍스트 인풋 제거)
+    st.markdown('<div class="work-area">', unsafe_allow_html=True)
+
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">파일선택</div>', unsafe_allow_html=True)
@@ -654,7 +636,8 @@ with center_col:
             use_container_width=True,
         )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)  # section-card 닫기
+    st.markdown("</div>", unsafe_allow_html=True)  # work-area 닫기
 
 # =========================================================
 # BOTTOM SECTION
