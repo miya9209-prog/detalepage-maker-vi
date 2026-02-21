@@ -28,6 +28,9 @@ TOP_BANNER_PATH = os.path.join(ASSETS_DIR, "top_banner.png")
 AD_W = 300
 AD_H = 600
 
+# ✅ 탑배너가 양옆에 흰여백이 생길 때: 고정 높이로 cover 처리
+TOP_BANNER_H = 160  # 필요 시 140~200 사이에서 조정
+
 MISHARP_URL = "https://www.misharp.co.kr"
 PRO_APPLY_URL = "https://www.misharp.co.kr"
 
@@ -56,7 +59,6 @@ if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state["seen_hashes"] = set()
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
-    # file_uploader 위젯 키 제거 (다음 rerun에서 초기화)
     st.session_state.pop(UPLOADER_KEY, None)
     st.session_state[RESET_FLAG_KEY] = False
 
@@ -91,11 +93,27 @@ html, body, [class*="css"] {{
 }}
 
 /* =========================================================
-   ✅ 1) "상단 흰박스" 원인: stTextInput 류 렌더링
-   - 이 앱에서는 텍스트 입력창이 필요 없으니 통째로 숨김
+   ✅ 1) "파일선택 위 흰박스" 완전 제거 (Streamlit DOM 변화 대응)
+   - 기존 stTextInput selector만으로는 안 먹는 케이스가 있어 확장
    ========================================================= */
-div[data-testid="stTextInput"] {{
+div[data-testid="stTextInput"],
+div[data-testid="stTextInputRoot"],
+div[data-testid="stTextInputContainer"],
+div[data-testid="stTextInput-Root"],
+div[data-testid="stTextInput-Container"] {{
   display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}}
+
+/* 만약 '빈 인풋'이 다른 testid로 뜨는 경우 대비 (중앙 컬럼에서만) */
+div[data-testid="column"]:has(input[type="text"]) {{
+  /* 슬라이더/업로더 영향 없도록: 텍스트인풋만 숨김 */
+}}
+div[data-testid="column"] input[type="text"] {{
+  display:none !important;
 }}
 
 /* ---------- Header ---------- */
@@ -129,9 +147,7 @@ div[data-testid="stTextInput"] {{
   display:inline-block;
   box-shadow: 0 8px 18px rgba(17,24,39,.18);
 }}
-.pro-btn .pill:hover{{
-  filter: brightness(0.92);
-}}
+.pro-btn .pill:hover{{ filter: brightness(0.92); }}
 
 .main-title{{
   margin-top: 10px;
@@ -167,11 +183,14 @@ div[data-testid="stTextInput"] {{
   border-radius: 14px;
   overflow:hidden;
   box-shadow: var(--shadow);
+  height: {TOP_BANNER_H}px;     /* ✅ 양옆 여백 방지: 래퍼 높이 고정 */
 }}
-.top-banner-wrap a{{ display:block; }}
+.top-banner-wrap a{{ display:block; width:100%; height:100%; }}
 .top-banner-wrap img{{
   width:100%;
-  height:auto;
+  height:100%;                 /* ✅ cover 가능하게 높이 100% */
+  object-fit: cover;           /* ✅ 양옆 여백 제거 */
+  object-position: center;
   display:block;
 }}
 
@@ -185,7 +204,7 @@ div[data-testid="stTextInput"] {{
 .ad-box{{
   width: 100%;
   max-width: {AD_W}px;
-  height: {AD_H}px;               /* ✅ 고정 높이로 박스 유지 */
+  height: {AD_H}px;               /* ✅ 박스 높이 유지 */
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -196,8 +215,8 @@ div[data-testid="stTextInput"] {{
 .ad-box img{{
   width:100%;
   height:100%;
-  object-fit: contain;            /* ✅ [수정] cover → contain (잘림 방지) */
-  object-position: center;        /* ✅ [추가] 중앙정렬 */
+  object-fit: cover;              /* ✅ 여백 없이 꽉 채움(흰틀/위아래 여백 제거) */
+  object-position: center;
   display:block;
 }}
 
@@ -228,12 +247,8 @@ div[data-testid="stTextInput"] {{
 }}
 
 /* ---------- File uploader: 불필요한 라벨/빈 영역 제거 ---------- */
-div[data-testid="stFileUploader"] label {{
-  display:none !important;
-}}
-div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
-  display:none !important;
-}}
+div[data-testid="stFileUploader"] label {{ display:none !important; }}
+div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{ display:none !important; }}
 div[data-testid="stFileUploader"] > div {{
   background: transparent !important;
   border: none !important;
@@ -248,12 +263,8 @@ div[data-testid="stFileUploaderDropzone"] {{
   background: #0b1220 !important;
   padding: 18px !important;
 }}
-div[data-testid="stFileUploaderDropzone"] * {{
-  color: #fff !important;
-}}
-div[data-testid="stFileUploaderDropzone"] ul {{
-  display:none !important;
-}}
+div[data-testid="stFileUploaderDropzone"] * {{ color: #fff !important; }}
+div[data-testid="stFileUploaderDropzone"] ul {{ display:none !important; }}
 div[data-testid="stFileUploaderDropzone"] button {{
   background: rgba(255,255,255,.08) !important;
   border: 1px solid rgba(255,255,255,.18) !important;
@@ -261,13 +272,9 @@ div[data-testid="stFileUploaderDropzone"] button {{
   border-radius: 10px !important;
   font-weight: 900 !important;
 }}
-div[data-testid="stFileUploaderDropzone"] button:hover {{
-  background: rgba(255,255,255,.14) !important;
-}}
+div[data-testid="stFileUploaderDropzone"] button:hover {{ background: rgba(255,255,255,.14) !important; }}
 
-/* =========================================================
-   ✅ 2) 버튼 hover 시 흰색으로 변하는 문제 해결
-   ========================================================= */
+/* 버튼 hover 고정 */
 .stButton>button{{
   border-radius: 12px !important;
   font-weight: 950 !important;
@@ -291,7 +298,7 @@ div[data-testid="stFileUploaderDropzone"] button:hover {{
   box-shadow: 0 0 0 3px rgba(17,24,39,.12) !important;
 }}
 
-/* 다운로드 버튼도 동일 톤 */
+/* 다운로드 버튼 동일 */
 div[data-testid="stDownloadButton"] > button{{
   background: var(--primary) !important;
   color: #fff !important;
@@ -306,7 +313,7 @@ div[data-testid="stDownloadButton"] > button:hover{{
   filter: brightness(0.92) !important;
 }}
 
-/* 파일 리스트 조작 버튼 */
+/* 파일 리스트 버튼 */
 .file-name{{
   font-weight: 900;
   color: #344054;
@@ -379,9 +386,7 @@ div[data-testid="stDownloadButton"] > button:hover{{
   display:inline-block;
   box-shadow: 0 10px 24px rgba(17,24,39,.22);
 }}
-.bottom-cta a:hover{{
-  filter: brightness(0.92);
-}}
+.bottom-cta a:hover{{ filter: brightness(0.92); }}
 .contact-box{{
   margin-top: var(--s3);
   text-align:center;
