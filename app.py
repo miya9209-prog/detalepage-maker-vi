@@ -29,7 +29,9 @@ AD_W = 300
 TOP_BANNER_H = 160
 
 MISHARP_URL = "https://www.misharp.co.kr"
-PRO_APPLY_URL = "https://www.misharp.co.kr"
+
+# ✅✅✅ PRO 신청 링크(구글폼)로 교체
+PRO_APPLY_URL = "https://docs.google.com/forms/d/e/1FAIpQLScA_ZEMDmlW3DwdPk_Bn6L5WUeOoT7BFhRb3MPP2t_EMtBHwA/viewform?usp=publish-editor"
 
 UPLOADER_KEY_BASE = "uploader_files"
 RESET_FLAG_KEY = "do_reset"
