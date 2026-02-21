@@ -29,8 +29,6 @@ AD_W = 300
 AD_H = 600
 
 MISHARP_URL = "https://www.misharp.co.kr"
-
-# PRO 버튼 링크(원하시는 링크로 교체)
 PRO_APPLY_URL = "https://www.misharp.co.kr"
 
 UPLOADER_KEY = "uploader_files"
@@ -40,9 +38,9 @@ RESET_FLAG_KEY = "do_reset"
 # SESSION STATE INIT
 # =========================================================
 if "files" not in st.session_state:
-    st.session_state["files"] = []  # List[Tuple[name, bytes, PIL.Image]]
+    st.session_state["files"] = []
 if "seen_hashes" not in st.session_state:
-    st.session_state["seen_hashes"] = set()  # 중복 방지용 hash set
+    st.session_state["seen_hashes"] = set()
 if "result_bytes" not in st.session_state:
     st.session_state["result_bytes"] = None
 if "result_filename" not in st.session_state:
@@ -51,14 +49,14 @@ if RESET_FLAG_KEY not in st.session_state:
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
-# ✅ SAFE RESET HANDLING (위젯 생성 전에만 uploader key 삭제)
+# ✅ SAFE RESET HANDLING
 # =========================================================
 if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state["files"] = []
     st.session_state["seen_hashes"] = set()
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
-    st.session_state.pop(UPLOADER_KEY, None)  # ✅ 위젯 생성 전이라 안전
+    st.session_state.pop(UPLOADER_KEY, None)
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
@@ -164,7 +162,7 @@ html, body, [class*="css"] {{
   display:block;
 }}
 
-/* ---------- Ads (aspect-ratio로 빈칸/잘림 최소화) ---------- */
+/* ---------- Ads ---------- */
 .ad-wrapper{{
   width:100%;
   display:flex;
@@ -185,20 +183,8 @@ html, body, [class*="css"] {{
 .ad-box img{{
   width:100%;
   height:100%;
-  object-fit: cover;   /* 빈칸 0 우선 (원본이 300x600이면 거의 크롭 없음) */
+  object-fit: cover;
   display:block;
-}}
-.ad-empty{{
-  width:100%;
-  height:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding: 14px;
-  color:#98A2B3;
-  font-weight: 900;
-  line-height:1.4;
 }}
 
 /* ---------- Work Area ---------- */
@@ -227,24 +213,63 @@ html, body, [class*="css"] {{
   margin: var(--s2) 0 var(--s2) 0;
 }}
 
-/* 업로더 큰 흰박스/내장 목록 숨김 */
-div[data-testid="stFileUploader"] label {{ display:none !important; }}
-div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{ display:none !important; }}
+/* =========================================================
+   ✅✅✅ FILE UPLOADER "흰박스" 완전 제거 핵심
+   - 남는 원인: Dropzone 자체의 기본 min-height/padding/background
+   - 해결: dropzone/child 모두 min-height:0, padding:0, background:transparent
+   ========================================================= */
+div[data-testid="stFileUploader"]{{
+  margin-top: 0 !important;
+}}
+div[data-testid="stFileUploader"] label {{
+  display:none !important;
+}}
+div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
+  display:none !important;
+}}
+/* 업로더 outer wrapper */
 div[data-testid="stFileUploader"] > div {{
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
   margin: 0 !important;
+  min-height: 0 !important;
 }}
+/* dropzone */
 div[data-testid="stFileUploaderDropzone"] {{
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
   padding: 0 !important;
   margin: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
 }}
-div[data-testid="stFileUploaderDropzone"] ul {{ display:none !important; }}
+/* dropzone 내부 wrapper까지 싹 */
+div[data-testid="stFileUploaderDropzone"] > div {{
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  background: transparent !important;
+}}
+/* 아이콘/텍스트 영역 */
+div[data-testid="stFileUploaderDropzone"] section {{
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  background: transparent !important;
+}}
+/* 업로드 파일 목록(기본 ul) 숨김 */
+div[data-testid="stFileUploaderDropzone"] ul {{
+  display:none !important;
+}}
+/* "Browse files" 버튼 위 여백/배경도 제거 */
+div[data-testid="stFileUploaderDropzone"] button {{
+  margin: 0 !important;
+}}
 
 /* buttons */
 .stButton>button{{
@@ -303,7 +328,6 @@ div[data-testid="stDownloadButton"] > button{{
   line-height: 1.65;
   box-shadow: var(--shadow);
 }}
-
 .tool-card{{
   background:#fff;
   border:1px solid var(--border);
@@ -324,7 +348,6 @@ div[data-testid="stDownloadButton"] > button{{
   font-weight: 780;
   line-height: 1.55;
 }}
-
 .bottom-cta{{
   text-align:center;
   margin-top: var(--s4);
@@ -340,7 +363,6 @@ div[data-testid="stDownloadButton"] > button{{
   display:inline-block;
   box-shadow: 0 10px 24px rgba(17,24,39,.22);
 }}
-
 .contact-box{{
   margin-top: var(--s3);
   text-align:center;
@@ -361,7 +383,6 @@ div[data-testid="stDownloadButton"] > button{{
   color: var(--danger);
   margin-top: 6px;
 }}
-
 .copyright{{
   margin-top: var(--s3);
   text-align:center;
@@ -387,25 +408,19 @@ def bytes_hash(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 def add_uploaded_files(uploaded) -> None:
-    """✅ rerun 되어도 같은 파일은 hash로 중복 추가되지 않도록 방지"""
     if not uploaded:
         return
-
     for uf in uploaded:
         if len(st.session_state["files"]) >= MAX_FILES:
             break
-
         file_bytes = uf.read()
         h = bytes_hash(file_bytes)
-
         if h in st.session_state["seen_hashes"]:
             continue
-
         try:
             img = safe_open_image(file_bytes)
         except Exception:
             continue
-
         st.session_state["files"].append((uf.name, file_bytes, img))
         st.session_state["seen_hashes"].add(h)
 
@@ -466,19 +481,6 @@ def render_ad_box(img_path: str) -> None:
   <a href="{MISHARP_URL}" target="_blank" rel="noopener">
     <img src="{uri}" alt="ad">
   </a>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f"""
-<div class="ad-box">
-  <div class="ad-empty">
-    광고 이미지 없음<br><br>
-    <b>{AD_W} x {AD_H}px</b><br>
-    {img_path}
-  </div>
 </div>
 """,
             unsafe_allow_html=True,
@@ -571,24 +573,20 @@ with center_col:
     else:
         for i, (name, _bts, _img) in enumerate(st.session_state["files"]):
             row_cols = st.columns([6, 1.2, 1.2, 1.2], gap="small")
-
             with row_cols[0]:
                 st.markdown(f"<div class='file-name'>{i+1}. {name}</div>", unsafe_allow_html=True)
-
             with row_cols[1]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("▼", key=f"down_{i}", use_container_width=True):
                     move_file(i, +1)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
-
             with row_cols[2]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("▲", key=f"up_{i}", use_container_width=True):
                     move_file(i, -1)
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
-
             with row_cols[3]:
                 st.markdown("<div class='small-btn'>", unsafe_allow_html=True)
                 if st.button("X", key=f"remove_{i}", use_container_width=True):
@@ -605,16 +603,12 @@ with center_col:
         st.markdown("<div id='reset_btn'></div>", unsafe_allow_html=True)
         st.button("초기화", use_container_width=True, on_click=request_reset)
 
-    if "generate_clicked_once" not in st.session_state:
-        st.session_state["generate_clicked_once"] = False
-
     if generate_clicked:
         if len(st.session_state["files"]) == 0:
             st.warning("먼저 이미지를 업로드해주세요.")
         else:
             imgs = [t[2] for t in st.session_state["files"]]
             result_img = build_stacked_image(imgs, gap)
-
             buf = io.BytesIO()
             result_img.save(buf, format="JPEG", quality=95)
             st.session_state["result_bytes"] = buf.getvalue()
@@ -633,7 +627,7 @@ with center_col:
     st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
-# ✅ BOTTOM SECTION (하단부 전체 복구)
+# BOTTOM SECTION
 # =========================================================
 st.markdown(
     """
@@ -706,7 +700,6 @@ with t1:
 """,
         unsafe_allow_html=True,
     )
-
 with t2:
     st.markdown(
         """
@@ -720,7 +713,6 @@ with t2:
 """,
         unsafe_allow_html=True,
     )
-
 with t3:
     st.markdown(
         """
