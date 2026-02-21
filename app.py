@@ -4,7 +4,7 @@ import io
 import os
 import base64
 import hashlib
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 # =========================================================
 # PAGE CONFIG
@@ -38,7 +38,7 @@ RESET_FLAG_KEY = "do_reset"
 # SESSION STATE INIT
 # =========================================================
 if "files" not in st.session_state:
-    st.session_state["files"] = []
+    st.session_state["files"] = []  # list[(name, bytes, PIL)]
 if "seen_hashes" not in st.session_state:
     st.session_state["seen_hashes"] = set()
 if "result_bytes" not in st.session_state:
@@ -49,18 +49,19 @@ if RESET_FLAG_KEY not in st.session_state:
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
-# ✅ SAFE RESET HANDLING
+# SAFE RESET HANDLING (Streamlit 위젯 키 직접 할당 금지 회피)
 # =========================================================
 if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state["files"] = []
     st.session_state["seen_hashes"] = set()
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
+    # file_uploader 위젯 키 제거 (다음 rerun에서 초기화)
     st.session_state.pop(UPLOADER_KEY, None)
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
-# CSS
+# CSS (실서비스 마감)
 # =========================================================
 st.markdown(
     f"""
@@ -73,11 +74,11 @@ st.markdown(
   --muted:#667085;
   --danger:#e60012;
   --primary:#111827;
-  --accent:#ffcc00;
   --shadow:0 10px 30px rgba(16,24,40,.07);
 
   --s1:16px; --s2:24px; --s3:32px; --s4:40px; --s5:56px;
 }}
+
 .stApp{{ background: var(--bg) !important; }}
 .block-container{{
   max-width: 1320px;
@@ -87,6 +88,14 @@ st.markdown(
 html, body, [class*="css"] {{
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR",
                "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
+}}
+
+/* =========================================================
+   ✅ 1) "상단 흰박스" 원인: stTextInput 류 렌더링
+   - 이 앱에서는 텍스트 입력창이 필요 없으니 통째로 숨김
+   ========================================================= */
+div[data-testid="stTextInput"] {{
+  display: none !important;
 }}
 
 /* ---------- Header ---------- */
@@ -120,6 +129,10 @@ html, body, [class*="css"] {{
   display:inline-block;
   box-shadow: 0 8px 18px rgba(17,24,39,.18);
 }}
+.pro-btn .pill:hover{{
+  filter: brightness(0.92);
+}}
+
 .main-title{{
   margin-top: 10px;
   font-size: 34px;
@@ -172,7 +185,7 @@ html, body, [class*="css"] {{
 .ad-box{{
   width: 100%;
   max-width: {AD_W}px;
-  aspect-ratio: {AD_W} / {AD_H};
+  height: {AD_H}px;               /* ✅ 고정 높이로 빈칸 방지 */
   border:1px solid var(--border);
   border-radius:14px;
   overflow:hidden;
@@ -183,7 +196,7 @@ html, body, [class*="css"] {{
 .ad-box img{{
   width:100%;
   height:100%;
-  object-fit: cover;
+  object-fit: cover;              /* ✅ 잘림은 최소화(cover). 필요하면 contain으로 변경 가능 */
   display:block;
 }}
 
@@ -213,21 +226,13 @@ html, body, [class*="css"] {{
   margin: var(--s2) 0 var(--s2) 0;
 }}
 
-/* =========================================================
-   ✅✅✅ FILE UPLOADER "흰박스" 완전 제거 핵심
-   - 남는 원인: Dropzone 자체의 기본 min-height/padding/background
-   - 해결: dropzone/child 모두 min-height:0, padding:0, background:transparent
-   ========================================================= */
-div[data-testid="stFileUploader"]{{
-  margin-top: 0 !important;
-}}
+/* ---------- File uploader: 불필요한 라벨/빈 영역 제거 ---------- */
 div[data-testid="stFileUploader"] label {{
   display:none !important;
 }}
 div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
   display:none !important;
 }}
-/* 업로더 outer wrapper */
 div[data-testid="stFileUploader"] > div {{
   background: transparent !important;
   border: none !important;
@@ -236,57 +241,57 @@ div[data-testid="stFileUploader"] > div {{
   margin: 0 !important;
   min-height: 0 !important;
 }}
-/* dropzone */
 div[data-testid="stFileUploaderDropzone"] {{
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--border) !important;
+  background: #0b1220 !important;
+  padding: 18px !important;
 }}
-/* dropzone 내부 wrapper까지 싹 */
-div[data-testid="stFileUploaderDropzone"] > div {{
-  padding: 0 !important;
-  margin: 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
-  background: transparent !important;
+div[data-testid="stFileUploaderDropzone"] * {{
+  color: #fff !important;
 }}
-/* 아이콘/텍스트 영역 */
-div[data-testid="stFileUploaderDropzone"] section {{
-  padding: 0 !important;
-  margin: 0 !important;
-  min-height: 0 !important;
-  height: auto !important;
-  background: transparent !important;
-}}
-/* 업로드 파일 목록(기본 ul) 숨김 */
 div[data-testid="stFileUploaderDropzone"] ul {{
   display:none !important;
 }}
-/* "Browse files" 버튼 위 여백/배경도 제거 */
 div[data-testid="stFileUploaderDropzone"] button {{
-  margin: 0 !important;
+  background: rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  font-weight: 900 !important;
+}}
+div[data-testid="stFileUploaderDropzone"] button:hover {{
+  background: rgba(255,255,255,.14) !important;
 }}
 
-/* buttons */
+/* =========================================================
+   ✅ 2) 버튼 hover 시 흰색으로 변하는 문제 해결
+   - 버튼 색/글자색을 hover 포함 "고정"
+   ========================================================= */
 .stButton>button{{
   border-radius: 12px !important;
   font-weight: 950 !important;
   height: 54px !important;
-}}
-div[data-testid="stButton"]#generate_btn > button{{
-  background: var(--accent) !important;
-  color: #111 !important;
   border: 0 !important;
+  background: var(--primary) !important;
+  color: #fff !important;
 }}
-div[data-testid="stButton"]#reset_btn > button{{
-  background: #fff !important;
-  color: #111 !important;
-  border: 1px solid var(--border) !important;
+.stButton>button:hover{{
+  background: var(--primary) !important;
+  color: #fff !important;
+  filter: brightness(0.92) !important;
 }}
+.stButton>button:active{{
+  background: var(--primary) !important;
+  color: #fff !important;
+  filter: brightness(0.88) !important;
+}}
+.stButton>button:focus{{
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(17,24,39,.12) !important;
+}}
+
+/* 다운로드 버튼도 동일 톤 */
 div[data-testid="stDownloadButton"] > button{{
   background: var(--primary) !important;
   color: #fff !important;
@@ -295,7 +300,13 @@ div[data-testid="stDownloadButton"] > button{{
   border-radius: 12px !important;
   font-weight: 950 !important;
 }}
+div[data-testid="stDownloadButton"] > button:hover{{
+  background: var(--primary) !important;
+  color: #fff !important;
+  filter: brightness(0.92) !important;
+}}
 
+/* 파일 리스트 조작 버튼 */
 .file-name{{
   font-weight: 900;
   color: #344054;
@@ -313,6 +324,11 @@ div[data-testid="stDownloadButton"] > button{{
   background: var(--primary) !important;
   color: #fff !important;
   font-weight: 950 !important;
+}}
+.small-btn button:hover{{
+  background: var(--primary) !important;
+  color:#fff !important;
+  filter: brightness(0.92) !important;
 }}
 
 /* ---------- Bottom sections ---------- */
@@ -362,6 +378,9 @@ div[data-testid="stDownloadButton"] > button{{
   text-decoration:none;
   display:inline-block;
   box-shadow: 0 10px 24px rgba(17,24,39,.22);
+}}
+.bottom-cta a:hover{{
+  filter: brightness(0.92);
 }}
 .contact-box{{
   margin-top: var(--s3);
@@ -432,10 +451,7 @@ def move_file(idx: int, direction: int) -> None:
         st.session_state["files"] = files
 
 def rebuild_seen_hashes() -> None:
-    s = set()
-    for (_n, b, _i) in st.session_state["files"]:
-        s.add(bytes_hash(b))
-    st.session_state["seen_hashes"] = s
+    st.session_state["seen_hashes"] = {bytes_hash(b) for (_n, b, _i) in st.session_state["files"]}
 
 def remove_file(idx: int) -> None:
     files = st.session_state["files"]
@@ -462,14 +478,11 @@ def build_stacked_image(images: List[Image.Image], gap: int) -> Image.Image:
 def img_to_data_uri(path: str) -> Optional[str]:
     if not os.path.exists(path):
         return None
-    try:
-        ext = os.path.splitext(path)[1].lower().replace(".", "")
-        mime = "png" if ext == "png" else "jpeg"
-        with open(path, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("utf-8")
-        return f"data:image/{mime};base64,{b64}"
-    except Exception:
-        return None
+    ext = os.path.splitext(path)[1].lower().replace(".", "")
+    mime = "png" if ext == "png" else "jpeg"
+    with open(path, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:image/{mime};base64,{b64}"
 
 def render_ad_box(img_path: str) -> None:
     uri = img_to_data_uri(img_path)
@@ -562,7 +575,6 @@ with center_col:
     with cA:
         gap = st.slider("이미지 간격 (0~300PX)", 0, 300, 50)
     with cB:
-        st.markdown("<div id='generate_btn'></div>", unsafe_allow_html=True)
         generate_clicked = st.button("생성하기 (JPG)", use_container_width=True)
 
     st.markdown("<div style='height: 22px;'></div>", unsafe_allow_html=True)
@@ -600,7 +612,6 @@ with center_col:
 
     reset_cols = st.columns([1, 1, 1])
     with reset_cols[2]:
-        st.markdown("<div id='reset_btn'></div>", unsafe_allow_html=True)
         st.button("초기화", use_container_width=True, on_click=request_reset)
 
     if generate_clicked:
