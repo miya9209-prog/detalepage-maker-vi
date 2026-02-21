@@ -31,10 +31,10 @@ TOP_BANNER_H = 160
 MISHARP_URL = "https://www.misharp.co.kr"
 PRO_APPLY_URL = "https://www.misharp.co.kr"
 
-UPLOADER_KEY = "uploader_files"
+UPLOADER_KEY_BASE = "uploader_files"
 RESET_FLAG_KEY = "do_reset"
 
-OUTPUT_WIDTH = 900
+OUTPUT_WIDTH = 900  # ✅ 생성 결과 가로 900px 고정
 
 # =========================================================
 # SESSION STATE INIT
@@ -49,11 +49,17 @@ if "result_filename" not in st.session_state:
     st.session_state["result_filename"] = "detail_page.jpg"
 if "just_generated" not in st.session_state:
     st.session_state["just_generated"] = False
+if "uploader_nonce" not in st.session_state:
+    st.session_state["uploader_nonce"] = 0
 if RESET_FLAG_KEY not in st.session_state:
     st.session_state[RESET_FLAG_KEY] = False
 
+def current_uploader_key() -> str:
+    return f"{UPLOADER_KEY_BASE}_{st.session_state['uploader_nonce']}"
+
 # =========================================================
 # SAFE RESET HANDLING
+# ✅ 핵심: uploader_nonce를 증가시켜 file_uploader 위젯 자체를 새로 만들어 "이전 파일이 섞여오는 문제"를 차단
 # =========================================================
 if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state["files"] = []
@@ -61,7 +67,10 @@ if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
     st.session_state["just_generated"] = False
-    st.session_state.pop(UPLOADER_KEY, None)
+
+    # ✅ file_uploader 위젯 완전 초기화
+    st.session_state["uploader_nonce"] += 1
+
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
@@ -85,9 +94,9 @@ st.markdown(
 
   --s1:16px; --s2:24px; --s3:32px; --s4:40px; --s5:56px;
 
-  --greenText:#0f5132;     /* ✅ 진한 초록 */
-  --greenBg:#d1e7dd;       /* ✅ 가독성 좋은 연초록 배경 */
-  --greenBorder:#badbcc;   /* ✅ 테두리 */
+  --greenText:#0f5132;
+  --greenBg:#d1e7dd;
+  --greenBorder:#badbcc;
 }}
 
 .stApp{{ background: var(--bg) !important; }}
@@ -101,23 +110,23 @@ html, body, [class*="css"] {{
                "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
 }}
 
-/* ✅ 파일선택 위 흰 박스 제거 (기존 유지) */
-.work-area div:has(> div[data-baseweb="base-input"]) {{ display:none !important; }}
-.work-area div:has(> div[data-baseweb="input"]) {{ display:none !important; }}
-.work-area div:has(> input:not([type])) {{ display:none !important; }}
-.work-area div:has(> input[type="text"]) {{ display:none !important; }}
-.work-area div:has(> input[type="search"]) {{ display:none !important; }}
-.work-area div[data-testid="stTextInput"],
-.work-area div[data-testid="stTextInputRoot"],
-.work-area div[data-testid="stTextInputContainer"] {{
-  display:none !important;
-  height:0 !important;
-  margin:0 !important;
-  padding:0 !important;
-  border:0 !important;
+/* =========================================================
+   ✅ (1) 파일선택 위 "흰 박스" 제거 (전역 강제)
+   - Streamlit DOM 구조상 래퍼(div) 안에 안 들어가는 케이스가 있어 전역으로 숨김
+   ========================================================= */
+div[data-testid="stTextInput"],
+div[data-testid="stTextInputRoot"],
+div[data-testid="stTextInputContainer"],
+div[data-baseweb="base-input"],
+div[data-baseweb="input"] {{
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
 }}
 
-/* ✅ Browse files 후 문서표시(업로더 파일 리스트) 숨김 (기존 유지) */
+/* ✅ Browse files 후 의미없는 문서표시(업로더 파일 리스트) 숨김 */
 div[data-testid="stFileUploaderFile"] {{ display:none !important; }}
 div[data-testid="stFileUploader"] ul {{ display:none !important; }}
 div[data-testid="stFileUploader"] li {{ display:none !important; }}
@@ -155,14 +164,14 @@ div[data-testid="stFileUploader"] li {{ display:none !important; }}
 }}
 .pro-btn .pill:hover{{ filter: brightness(0.92); }}
 
-/* ✅ (1) 제목 20% 축소: 70 -> 56 */
+/* ✅ (2) 제목 46pt */
 .main-title{{
   margin-top: 10px;
-  font-size: 56px;
+  font-size: 46px;
   font-weight: 950;
   color: var(--text);
   text-align:center;
-  line-height: 1.08;
+  line-height: 1.10;
 }}
 
 .sub-title{{
@@ -326,7 +335,6 @@ div[data-testid="stFileUploaderDropzone"] button:hover {{
   box-shadow: 0 0 0 3px rgba(17,24,39,.12) !important;
 }}
 
-/* 다운로드 버튼도 동일 톤 */
 div[data-testid="stDownloadButton"] > button{{
   background: var(--primary) !important;
   color: #fff !important;
@@ -363,7 +371,6 @@ div[data-testid="stDownloadButton"] > button:hover{{
   color:#fff !important;
 }}
 
-/* ✅ (2) 생성완료 박스 가독성 강화 */
 .notice-box{{
   background: var(--greenBg);
   border: 1px solid var(--greenBorder);
@@ -376,7 +383,6 @@ div[data-testid="stDownloadButton"] > button:hover{{
 }}
 .notice-box b{{ color: var(--greenText); }}
 
-/* ✅ (4) 20년차 박스 텍스트 초록 + 순서 바꿔도 스타일 유지 */
 .marketing{{
   margin-top: var(--s4);
   background:#f6f7f9;
@@ -559,7 +565,6 @@ with right_col:
     render_ad_box(AD_RIGHT_PATH)
 
 with center_col:
-    st.markdown('<div class="work-area">', unsafe_allow_html=True)
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">파일선택</div>', unsafe_allow_html=True)
@@ -571,7 +576,7 @@ with center_col:
         type=["jpg", "jpeg", "png"],
         accept_multiple_files=True,
         label_visibility="collapsed",
-        key=UPLOADER_KEY,
+        key=current_uploader_key(),  # ✅ nonce 기반 키
     )
     if uploaded:
         add_uploaded_files(uploaded)
@@ -584,7 +589,6 @@ with center_col:
     with cB:
         generate_clicked = st.button("생성하기 (JPG)", use_container_width=True)
 
-    # ✅ 생성 처리 (렌더 순서 문제 해결: 생성 먼저, 저장 버튼은 아래에서 출력)
     if generate_clicked:
         st.session_state["just_generated"] = False
         if len(st.session_state["files"]) == 0:
@@ -598,19 +602,16 @@ with center_col:
             st.session_state["result_filename"] = "detail_page.jpg"
             st.session_state["just_generated"] = True
 
-    # ✅ (2) 생성완료 박스 가독성 강화
     if st.session_state.get("just_generated", False):
         st.markdown(
             """
 <div class="notice-box">
-  <b>생성 완료!</b> 이제 오른쪽(생성하기 아래)의 <b>[저장하기]</b> 버튼으로 다운로드하세요.
+  <b>생성 완료!</b> 이제 아래 <b>[저장하기]</b> 버튼으로 다운로드하세요.
 </div>
 """,
             unsafe_allow_html=True,
         )
 
-    # ✅ (3) 저장하기 버튼 "항상" 생성하기 아래에 자동 노출 (렌더 순서 확정)
-    # - result_bytes가 있으면 무조건 보여줌
     if st.session_state.get("result_bytes"):
         st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
         st.download_button(
@@ -658,11 +659,10 @@ with center_col:
     with reset_cols[2]:
         st.button("초기화", use_container_width=True, on_click=request_reset)
 
-    st.markdown("</div>", unsafe_allow_html=True)  # section-card end
-    st.markdown("</div>", unsafe_allow_html=True)  # work-area end
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # =========================================================
-# ✅ (4) 박스 순서 교체: 사용안내 -> 20년차 박스
+# 박스들 (이전 구성 유지)
 # =========================================================
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
@@ -700,9 +700,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# =========================================================
-# PRO / ETC (기존 유지)
-# =========================================================
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
 st.markdown(
