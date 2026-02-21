@@ -34,7 +34,6 @@ PRO_APPLY_URL = "https://www.misharp.co.kr"
 UPLOADER_KEY = "uploader_files"
 RESET_FLAG_KEY = "do_reset"
 
-# 생성 결과 고정 폭
 OUTPUT_WIDTH = 900
 
 # =========================================================
@@ -48,6 +47,8 @@ if "result_bytes" not in st.session_state:
     st.session_state["result_bytes"] = None
 if "result_filename" not in st.session_state:
     st.session_state["result_filename"] = "detail_page.jpg"
+if "just_generated" not in st.session_state:
+    st.session_state["just_generated"] = False
 if RESET_FLAG_KEY not in st.session_state:
     st.session_state[RESET_FLAG_KEY] = False
 
@@ -59,11 +60,12 @@ if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state["seen_hashes"] = set()
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
+    st.session_state["just_generated"] = False
     st.session_state.pop(UPLOADER_KEY, None)
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
-# CSS (실서비스 마감)
+# CSS
 # =========================================================
 st.markdown(
     f"""
@@ -77,10 +79,15 @@ st.markdown(
   --danger:#e60012;
 
   --primary:#111827;
-  --primaryHover: rgba(0,0,0,0.90); /* ✅ 요청: 블랙90 */
+  --primaryHover: rgba(0,0,0,0.90);
+
   --shadow:0 10px 30px rgba(16,24,40,.07);
 
   --s1:16px; --s2:24px; --s3:32px; --s4:40px; --s5:56px;
+
+  --greenText:#0f5132;     /* ✅ 진한 초록 */
+  --greenBg:#d1e7dd;       /* ✅ 가독성 좋은 연초록 배경 */
+  --greenBorder:#badbcc;   /* ✅ 테두리 */
 }}
 
 .stApp{{ background: var(--bg) !important; }}
@@ -94,30 +101,12 @@ html, body, [class*="css"] {{
                "Apple SD Gothic Neo", "Malgun Gothic", Arial, sans-serif !important;
 }}
 
-/* =========================================================
-   ✅ (5) 파일선택 위 "흰 박스" 제거 (최종: 래퍼 자체 제거)
-   - 단순 input 숨김으로 안 잡히는 케이스 대응
-   - 크롬/엣지에서 :has() 지원 (Streamlit 웹 환경 OK)
-   ========================================================= */
-
-/* 1) work-area 안의 baseweb input을 포함한 래퍼를 통째로 숨김 */
-.work-area div:has(> div[data-baseweb="base-input"]) {{
-  display:none !important;
-}}
-.work-area div:has(> div[data-baseweb="input"]) {{
-  display:none !important;
-}}
-/* 2) 혹시 input(타입없음/텍스트/서치)을 포함한 래퍼도 통째로 숨김 */
-.work-area div:has(> input:not([type])) {{
-  display:none !important;
-}}
-.work-area div:has(> input[type="text"]) {{
-  display:none !important;
-}}
-.work-area div:has(> input[type="search"]) {{
-  display:none !important;
-}}
-/* 3) stTextInput 계열도 방어적으로 제거 */
+/* ✅ 파일선택 위 흰 박스 제거 (기존 유지) */
+.work-area div:has(> div[data-baseweb="base-input"]) {{ display:none !important; }}
+.work-area div:has(> div[data-baseweb="input"]) {{ display:none !important; }}
+.work-area div:has(> input:not([type])) {{ display:none !important; }}
+.work-area div:has(> input[type="text"]) {{ display:none !important; }}
+.work-area div:has(> input[type="search"]) {{ display:none !important; }}
 .work-area div[data-testid="stTextInput"],
 .work-area div[data-testid="stTextInputRoot"],
 .work-area div[data-testid="stTextInputContainer"] {{
@@ -128,22 +117,10 @@ html, body, [class*="css"] {{
   border:0 !important;
 }}
 
-/* =========================================================
-   ✅ (6) Browse files 후 뜨는 "의미없는 문서표시(업로더 파일 리스트)" 숨김
-   ========================================================= */
-div[data-testid="stFileUploaderFile"] {{
-  display:none !important;
-}}
-/* 버전에 따라 testid가 다를 수 있어 추가 방어 */
-div[data-testid="stFileUploader"] section {{
-  /* 업로더 하단 파일 목록이 들어오는 경우가 있어 섹션 자체를 정리 */
-}}
-div[data-testid="stFileUploader"] ul {{
-  display:none !important;
-}}
-div[data-testid="stFileUploader"] li {{
-  display:none !important;
-}}
+/* ✅ Browse files 후 문서표시(업로더 파일 리스트) 숨김 (기존 유지) */
+div[data-testid="stFileUploaderFile"] {{ display:none !important; }}
+div[data-testid="stFileUploader"] ul {{ display:none !important; }}
+div[data-testid="stFileUploader"] li {{ display:none !important; }}
 
 /* ---------- Header ---------- */
 .header-wrap{{
@@ -178,26 +155,24 @@ div[data-testid="stFileUploader"] li {{
 }}
 .pro-btn .pill:hover{{ filter: brightness(0.92); }}
 
-/* (1) 최상단 제목 변경 + 크게 */
+/* ✅ (1) 제목 20% 축소: 70 -> 56 */
 .main-title{{
   margin-top: 10px;
-  font-size: 70px;      /* ✅ 요청: 70포인트급 */
+  font-size: 56px;
   font-weight: 950;
   color: var(--text);
   text-align:center;
-  line-height: 1.05;
+  line-height: 1.08;
 }}
 
-/* (2) 하단 문구 굵기 30% 감소 */
 .sub-title{{
   margin-top: 10px;
   text-align:center;
   font-size: 18px;
-  font-weight: 650;     /* ✅ 기존 900대비 체감 30%↓ */
+  font-weight: 650;
   color: var(--danger);
 }}
 
-/* (3)(4)(5) 사용방법 글자 2배, 간격 2배, 3번 카피 교체 */
 .guide{{
   margin-top: var(--s2);
   border: 1px solid var(--border);
@@ -205,10 +180,9 @@ div[data-testid="stFileUploader"] li {{
   padding: var(--s2);
   text-align:center;
   background:#fff;
-  box-shadow: none;
 }}
 .guide .guide-title{{
-  font-size: 30px;      /* ✅ 2배급 */
+  font-size: 30px;
   font-weight: 950;
   color:#111827;
   margin-bottom: 14px;
@@ -217,7 +191,7 @@ div[data-testid="stFileUploader"] li {{
   display:flex;
   justify-content:center;
   align-items:center;
-  gap: 28px;            /* ✅ 기존 대비 2배 느낌으로 */
+  gap: 28px;
   flex-wrap: wrap;
 }}
 .guide .step{{
@@ -267,7 +241,7 @@ div[data-testid="stFileUploader"] li {{
 .ad-box img{{
   width:100%;
   height:auto;
-  object-fit: contain; /* ✅ 가로 잘림 방지 */
+  object-fit: contain;  /* ✅ 가로 잘림 방지 */
   object-position: center;
   display:block;
 }}
@@ -299,12 +273,8 @@ div[data-testid="stFileUploader"] li {{
 }}
 
 /* ---------- File uploader ---------- */
-div[data-testid="stFileUploader"] label {{
-  display:none !important;
-}}
-div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
-  display:none !important;
-}}
+div[data-testid="stFileUploader"] label {{ display:none !important; }}
+div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{ display:none !important; }}
 div[data-testid="stFileUploader"] > div {{
   background: transparent !important;
   border: none !important;
@@ -319,12 +289,8 @@ div[data-testid="stFileUploaderDropzone"] {{
   background: #0b1220 !important;
   padding: 18px !important;
 }}
-div[data-testid="stFileUploaderDropzone"] * {{
-  color: #fff !important;
-}}
-div[data-testid="stFileUploaderDropzone"] ul {{
-  display:none !important;
-}}
+div[data-testid="stFileUploaderDropzone"] * {{ color: #fff !important; }}
+div[data-testid="stFileUploaderDropzone"] ul {{ display:none !important; }}
 div[data-testid="stFileUploaderDropzone"] button {{
   background: rgba(255,255,255,.08) !important;
   border: 1px solid rgba(255,255,255,.18) !important;
@@ -336,7 +302,7 @@ div[data-testid="stFileUploaderDropzone"] button:hover {{
   background: rgba(255,255,255,.14) !important;
 }}
 
-/* (7) 생성하기 버튼 hover/active 블랙90 */
+/* 버튼 hover/active 블랙90 */
 .stButton>button{{
   border-radius: 12px !important;
   font-weight: 950 !important;
@@ -347,7 +313,7 @@ div[data-testid="stFileUploaderDropzone"] button:hover {{
   transition: background .15s ease, filter .15s ease;
 }}
 .stButton>button:hover{{
-  background: var(--primaryHover) !important;  /* ✅ 블랙90 */
+  background: var(--primaryHover) !important;
   color: #fff !important;
 }}
 .stButton>button:active{{
@@ -374,7 +340,6 @@ div[data-testid="stDownloadButton"] > button:hover{{
   color: #fff !important;
 }}
 
-/* 파일 리스트 버튼 */
 .file-name{{
   font-weight: 900;
   color: #344054;
@@ -398,30 +363,43 @@ div[data-testid="stDownloadButton"] > button:hover{{
   color:#fff !important;
 }}
 
-/* ---------- Marketing box (9) ---------- */
+/* ✅ (2) 생성완료 박스 가독성 강화 */
+.notice-box{{
+  background: var(--greenBg);
+  border: 1px solid var(--greenBorder);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 14px;
+  font-weight: 950;
+  color: var(--greenText);
+  font-size: 15px;
+}}
+.notice-box b{{ color: var(--greenText); }}
+
+/* ✅ (4) 20년차 박스 텍스트 초록 + 순서 바꿔도 스타일 유지 */
 .marketing{{
-  margin-top: var(--s5);
-  background:#f6f7f9;            /* ✅ 약간의 그레이로 강조 */
+  margin-top: var(--s4);
+  background:#f6f7f9;
   border:1px solid var(--border);
   border-radius:14px;
   padding: var(--s3);
   text-align:center;
-  color: #344054;
-  font-weight: 850;
-  line-height: 1.65;
   box-shadow: var(--shadow);
 }}
 .marketing .headline{{
   text-align:center;
-  font-size: 28px;               /* ✅ 본문 대비 2배급 */
+  font-size: 28px;
   font-weight: 950;
-  color: #111827;
+  color: var(--greenText);
   margin-bottom: 12px;
 }}
-
-/* (11) PRO 섹션 일부 10% 키움 */
+.marketing .body{{
+  color: var(--greenText);
+  font-weight: 850;
+  line-height: 1.65;
+}}
 .pro-strong{{
-  font-size: 15.4px; /* 14px의 10% ↑ */
+  font-size: 15.4px;
   font-weight: 900;
   color:#111827;
 }}
@@ -506,13 +484,11 @@ def render_ad_box(img_path: str) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 def resize_to_width(im: Image.Image, target_w: int) -> Image.Image:
-    """✅ (12) 900px 고정폭으로 맞추고 좌우여백 없이 꽉 차게"""
     if im.mode != "RGB":
         im = im.convert("RGB")
     w, h = im.size
     if w == target_w:
         return im
-    # 가로 기준 비율 유지 리사이즈 (작은 이미지도 900으로 확대)
     new_h = max(1, int(h * (target_w / float(w))))
     return im.resize((target_w, new_h), Image.LANCZOS)
 
@@ -522,7 +498,7 @@ def build_stacked_image_fixed_width(images: List[Image.Image], gap: int, target_
     canvas = Image.new("RGB", (target_w, total_h), (255, 255, 255))
     y = 0
     for im in resized:
-        canvas.paste(im, (0, y))  # ✅ x=0, 좌우여백 없음
+        canvas.paste(im, (0, y))
         y += im.size[1] + gap
     return canvas
 
@@ -556,7 +532,7 @@ st.markdown(
 )
 
 # =========================================================
-# TOP BANNER (click -> misharp)
+# TOP BANNER
 # =========================================================
 top_uri = img_to_data_uri(TOP_BANNER_PATH)
 if top_uri:
@@ -583,10 +559,9 @@ with right_col:
     render_ad_box(AD_RIGHT_PATH)
 
 with center_col:
-    # work-area 래퍼 (흰박스 제거 범위)
     st.markdown('<div class="work-area">', unsafe_allow_html=True)
-
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
+
     st.markdown('<div class="section-title">파일선택</div>', unsafe_allow_html=True)
     st.markdown('<div class="small-muted">JPG/PNG 파일을 업로드하세요. 최대 10개까지 가능합니다.</div>', unsafe_allow_html=True)
     st.markdown('<div class="hr-soft"></div>', unsafe_allow_html=True)
@@ -603,36 +578,48 @@ with center_col:
 
     st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
-    # gap + generate + (8) 저장하기 버튼을 "생성하기 바로 하단"에 배치
     cA, cB = st.columns([2, 1.2], gap="medium")
     with cA:
         gap = st.slider("이미지 간격 (0~300PX)", 0, 300, 50)
     with cB:
         generate_clicked = st.button("생성하기 (JPG)", use_container_width=True)
 
-        # (8) 생성 완료 후 저장하기 버튼을 생성하기 바로 아래에 노출
-        if st.session_state["result_bytes"]:
-            st.download_button(
-                label="저장하기",
-                data=st.session_state["result_bytes"],
-                file_name=st.session_state["result_filename"],
-                mime="image/jpeg",
-                use_container_width=True,
-            )
-
-    # 생성 처리
+    # ✅ 생성 처리 (렌더 순서 문제 해결: 생성 먼저, 저장 버튼은 아래에서 출력)
     if generate_clicked:
+        st.session_state["just_generated"] = False
         if len(st.session_state["files"]) == 0:
             st.warning("먼저 이미지를 업로드해주세요.")
         else:
             imgs = [t[2] for t in st.session_state["files"]]
-            # ✅ (12) 900px 고정폭으로 좌우여백 없이 생성
             result_img = build_stacked_image_fixed_width(imgs, gap, OUTPUT_WIDTH)
             buf = io.BytesIO()
             result_img.save(buf, format="JPEG", quality=95)
             st.session_state["result_bytes"] = buf.getvalue()
             st.session_state["result_filename"] = "detail_page.jpg"
-            st.success("생성 완료! 오른쪽의 [저장하기] 버튼으로 다운로드하세요.")
+            st.session_state["just_generated"] = True
+
+    # ✅ (2) 생성완료 박스 가독성 강화
+    if st.session_state.get("just_generated", False):
+        st.markdown(
+            """
+<div class="notice-box">
+  <b>생성 완료!</b> 이제 오른쪽(생성하기 아래)의 <b>[저장하기]</b> 버튼으로 다운로드하세요.
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+
+    # ✅ (3) 저장하기 버튼 "항상" 생성하기 아래에 자동 노출 (렌더 순서 확정)
+    # - result_bytes가 있으면 무조건 보여줌
+    if st.session_state.get("result_bytes"):
+        st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+        st.download_button(
+            label="저장하기",
+            data=st.session_state["result_bytes"],
+            file_name=st.session_state["result_filename"],
+            mime="image/jpeg",
+            use_container_width=True,
+        )
 
     st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title' style='font-size:16px;'>업로드 파일명</div>", unsafe_allow_html=True)
@@ -675,25 +662,10 @@ with center_col:
     st.markdown("</div>", unsafe_allow_html=True)  # work-area end
 
 # =========================================================
-# (9) MARKETING BOX (헤드라인 추가 + 약간 그레이)
+# ✅ (4) 박스 순서 교체: 사용안내 -> 20년차 박스
 # =========================================================
-st.markdown(
-    """
-<div class="marketing">
-  <div class="headline">20년차 온라인쇼핑몰 대표가 직접 만든 상세페이지 자동화툴</div>
-  MS 상세페이지 생성기는 20년차 여성의류 인터넷 쇼핑몰 대표가 사내에서 사용하기 위해 직접 제작한 프로그램으로<br>
-  실제 온라인 쇼핑몰 디자인 작업에 적용하고 있으며, 디자이너의 요구사항을 최대한 반영하여 구현한 최고의 툴입니다.<br>
-  MS 업무툴로 단순업무 시간은 줄이고 상세페이지의 퀄리티는 더 높이세요.
-</div>
-""",
-    unsafe_allow_html=True,
-)
-
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
-# =========================================================
-# (10) 사용안내 텍스트 교체
-# =========================================================
 st.markdown(
     """
 <div class="section-card">
@@ -714,9 +686,25 @@ st.markdown(
 
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
+st.markdown(
+    """
+<div class="marketing">
+  <div class="headline">20년차 온라인쇼핑몰 대표가 직접 만든 상세페이지 자동화툴</div>
+  <div class="body">
+    MS 상세페이지 생성기는 20년차 여성의류 인터넷 쇼핑몰 대표가 사내에서 사용하기 위해 직접 제작한 프로그램으로<br>
+    실제 온라인 쇼핑몰 디자인 작업에 적용하고 있으며, 디자이너의 요구사항을 최대한 반영하여 구현한 최고의 툴입니다.<br>
+    MS 업무툴로 단순업무 시간은 줄이고 상세페이지의 퀄리티는 더 높이세요.
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
 # =========================================================
-# (11) "고급객체" -> "고급개체" / 2문장 10% 키움
+# PRO / ETC (기존 유지)
 # =========================================================
+st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
+
 st.markdown(
     """
 <div class="section-card">
@@ -736,9 +724,6 @@ st.markdown(
 
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
-# =========================================================
-# (13) 문구 교체
-# =========================================================
 st.markdown(
     "<div class='section-title' style='font-size:24px; font-weight:950; margin-top:0;'>PRO버전은 디자이너를 위한 가장 효율적인 툴을 함께 제공합니다.</div>",
     unsafe_allow_html=True
