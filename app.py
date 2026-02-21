@@ -10,7 +10,7 @@ from typing import List, Optional
 # PAGE CONFIG
 # =========================================================
 st.set_page_config(
-    page_title="MS 상세페이지 자동생성기",
+    page_title="MS 쇼핑몰 상세페이지 자동 생성기",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -33,6 +33,9 @@ PRO_APPLY_URL = "https://www.misharp.co.kr"
 
 UPLOADER_KEY = "uploader_files"
 RESET_FLAG_KEY = "do_reset"
+
+# 생성 결과 고정 폭
+OUTPUT_WIDTH = 900
 
 # =========================================================
 # SESSION STATE INIT
@@ -60,7 +63,7 @@ if st.session_state.get(RESET_FLAG_KEY, False):
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
-# CSS
+# CSS (실서비스 마감)
 # =========================================================
 st.markdown(
     f"""
@@ -72,7 +75,9 @@ st.markdown(
   --text:#101828;
   --muted:#667085;
   --danger:#e60012;
+
   --primary:#111827;
+  --primaryHover: rgba(0,0,0,0.90); /* ✅ 요청: 블랙90 */
   --shadow:0 10px 30px rgba(16,24,40,.07);
 
   --s1:16px; --s2:24px; --s3:32px; --s4:40px; --s5:56px;
@@ -90,22 +95,29 @@ html, body, [class*="css"] {{
 }}
 
 /* =========================================================
-   ✅ 파일선택 위 '흰 박스' 100% 제거 (가운데 work-area 내부만)
-   - Streamlit/baseweb에서 type 없는 input(기본 text) 또는 base-input으로 뜨는 케이스 대응
-   - file/range/button 등은 제외
+   ✅ (5) 파일선택 위 "흰 박스" 제거 (최종: 래퍼 자체 제거)
+   - 단순 input 숨김으로 안 잡히는 케이스 대응
+   - 크롬/엣지에서 :has() 지원 (Streamlit 웹 환경 OK)
    ========================================================= */
-.work-area input:not([type]),
-.work-area input[type="text"],
-.work-area input[type="search"] {{
-  display:none !important;
-}}
-/* baseweb input wrapper(흰 박스)도 같이 제거 */
-.work-area div[data-baseweb="input"],
-.work-area div[data-baseweb="base-input"] {{
-  display:none !important;
-}}
 
-/* 혹시 stTextInput으로 렌더링되는 경우도 차단 */
+/* 1) work-area 안의 baseweb input을 포함한 래퍼를 통째로 숨김 */
+.work-area div:has(> div[data-baseweb="base-input"]) {{
+  display:none !important;
+}}
+.work-area div:has(> div[data-baseweb="input"]) {{
+  display:none !important;
+}}
+/* 2) 혹시 input(타입없음/텍스트/서치)을 포함한 래퍼도 통째로 숨김 */
+.work-area div:has(> input:not([type])) {{
+  display:none !important;
+}}
+.work-area div:has(> input[type="text"]) {{
+  display:none !important;
+}}
+.work-area div:has(> input[type="search"]) {{
+  display:none !important;
+}}
+/* 3) stTextInput 계열도 방어적으로 제거 */
 .work-area div[data-testid="stTextInput"],
 .work-area div[data-testid="stTextInputRoot"],
 .work-area div[data-testid="stTextInputContainer"] {{
@@ -114,6 +126,23 @@ html, body, [class*="css"] {{
   margin:0 !important;
   padding:0 !important;
   border:0 !important;
+}}
+
+/* =========================================================
+   ✅ (6) Browse files 후 뜨는 "의미없는 문서표시(업로더 파일 리스트)" 숨김
+   ========================================================= */
+div[data-testid="stFileUploaderFile"] {{
+  display:none !important;
+}}
+/* 버전에 따라 testid가 다를 수 있어 추가 방어 */
+div[data-testid="stFileUploader"] section {{
+  /* 업로더 하단 파일 목록이 들어오는 경우가 있어 섹션 자체를 정리 */
+}}
+div[data-testid="stFileUploader"] ul {{
+  display:none !important;
+}}
+div[data-testid="stFileUploader"] li {{
+  display:none !important;
 }}
 
 /* ---------- Header ---------- */
@@ -149,30 +178,53 @@ html, body, [class*="css"] {{
 }}
 .pro-btn .pill:hover{{ filter: brightness(0.92); }}
 
+/* (1) 최상단 제목 변경 + 크게 */
 .main-title{{
   margin-top: 10px;
-  font-size: 34px;
+  font-size: 70px;      /* ✅ 요청: 70포인트급 */
   font-weight: 950;
   color: var(--text);
   text-align:center;
+  line-height: 1.05;
 }}
+
+/* (2) 하단 문구 굵기 30% 감소 */
 .sub-title{{
-  margin-top: 8px;
+  margin-top: 10px;
   text-align:center;
-  font-size: 15px;
-  font-weight: 900;
+  font-size: 18px;
+  font-weight: 650;     /* ✅ 기존 900대비 체감 30%↓ */
   color: var(--danger);
 }}
+
+/* (3)(4)(5) 사용방법 글자 2배, 간격 2배, 3번 카피 교체 */
 .guide{{
   margin-top: var(--s2);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: var(--s2);
   text-align:center;
-  color: #344054;
-  font-weight: 850;
-  line-height: 1.55;
   background:#fff;
+  box-shadow: none;
+}}
+.guide .guide-title{{
+  font-size: 30px;      /* ✅ 2배급 */
+  font-weight: 950;
+  color:#111827;
+  margin-bottom: 14px;
+}}
+.guide .steps{{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap: 28px;            /* ✅ 기존 대비 2배 느낌으로 */
+  flex-wrap: wrap;
+}}
+.guide .step{{
+  font-size: 18px;
+  font-weight: 850;
+  color:#344054;
+  white-space: nowrap;
 }}
 
 /* ---------- Top banner ---------- */
@@ -194,7 +246,7 @@ html, body, [class*="css"] {{
   display:block;
 }}
 
-/* ---------- Ads (전체 이미지 보이게) ---------- */
+/* ---------- Ads ---------- */
 .ad-wrapper{{
   width:100%;
   display:flex;
@@ -203,7 +255,7 @@ html, body, [class*="css"] {{
 }}
 .ad-box{{
   width: 100%;
-  max-width: 300px;
+  max-width: {AD_W}px;
   height: auto;
   border:1px solid var(--border);
   border-radius:14px;
@@ -215,7 +267,7 @@ html, body, [class*="css"] {{
 .ad-box img{{
   width:100%;
   height:auto;
-  object-fit: contain;
+  object-fit: contain; /* ✅ 가로 잘림 방지 */
   object-position: center;
   display:block;
 }}
@@ -247,8 +299,12 @@ html, body, [class*="css"] {{
 }}
 
 /* ---------- File uploader ---------- */
-div[data-testid="stFileUploader"] label {{ display:none !important; }}
-div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{ display:none !important; }}
+div[data-testid="stFileUploader"] label {{
+  display:none !important;
+}}
+div[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] {{
+  display:none !important;
+}}
 div[data-testid="stFileUploader"] > div {{
   background: transparent !important;
   border: none !important;
@@ -263,8 +319,12 @@ div[data-testid="stFileUploaderDropzone"] {{
   background: #0b1220 !important;
   padding: 18px !important;
 }}
-div[data-testid="stFileUploaderDropzone"] * {{ color: #fff !important; }}
-div[data-testid="stFileUploaderDropzone"] ul {{ display:none !important; }}
+div[data-testid="stFileUploaderDropzone"] * {{
+  color: #fff !important;
+}}
+div[data-testid="stFileUploaderDropzone"] ul {{
+  display:none !important;
+}}
 div[data-testid="stFileUploaderDropzone"] button {{
   background: rgba(255,255,255,.08) !important;
   border: 1px solid rgba(255,255,255,.18) !important;
@@ -276,7 +336,7 @@ div[data-testid="stFileUploaderDropzone"] button:hover {{
   background: rgba(255,255,255,.14) !important;
 }}
 
-/* 버튼 hover 고정 */
+/* (7) 생성하기 버튼 hover/active 블랙90 */
 .stButton>button{{
   border-radius: 12px !important;
   font-weight: 950 !important;
@@ -284,14 +344,23 @@ div[data-testid="stFileUploaderDropzone"] button:hover {{
   border: 0 !important;
   background: var(--primary) !important;
   color: #fff !important;
+  transition: background .15s ease, filter .15s ease;
 }}
 .stButton>button:hover{{
-  background: var(--primary) !important;
+  background: var(--primaryHover) !important;  /* ✅ 블랙90 */
   color: #fff !important;
-  filter: brightness(0.92) !important;
+}}
+.stButton>button:active{{
+  background: var(--primaryHover) !important;
+  color:#fff !important;
+  filter: brightness(0.95) !important;
+}}
+.stButton>button:focus{{
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(17,24,39,.12) !important;
 }}
 
-/* 다운로드 버튼 */
+/* 다운로드 버튼도 동일 톤 */
 div[data-testid="stDownloadButton"] > button{{
   background: var(--primary) !important;
   color: #fff !important;
@@ -301,9 +370,8 @@ div[data-testid="stDownloadButton"] > button{{
   font-weight: 950 !important;
 }}
 div[data-testid="stDownloadButton"] > button:hover{{
-  background: var(--primary) !important;
+  background: var(--primaryHover) !important;
   color: #fff !important;
-  filter: brightness(0.92) !important;
 }}
 
 /* 파일 리스트 버튼 */
@@ -326,86 +394,36 @@ div[data-testid="stDownloadButton"] > button:hover{{
   font-weight: 950 !important;
 }}
 .small-btn button:hover{{
-  background: var(--primary) !important;
+  background: var(--primaryHover) !important;
   color:#fff !important;
-  filter: brightness(0.92) !important;
 }}
 
-/* ---------- Bottom ---------- */
+/* ---------- Marketing box (9) ---------- */
 .marketing{{
   margin-top: var(--s5);
-  background:#fff;
+  background:#f6f7f9;            /* ✅ 약간의 그레이로 강조 */
   border:1px solid var(--border);
   border-radius:14px;
   padding: var(--s3);
   text-align:center;
-  color: var(--danger);
-  font-weight: 900;
+  color: #344054;
+  font-weight: 850;
   line-height: 1.65;
   box-shadow: var(--shadow);
 }}
-.tool-card{{
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:14px;
-  box-shadow: var(--shadow);
-  padding: var(--s3);
-  min-height: 160px;
-}}
-.tool-title{{
-  font-size: 16px;
-  font-weight: 950;
-  color: var(--text);
-  margin-bottom: 8px;
-}}
-.tool-desc{{
-  font-size: 13px;
-  color: #667085;
-  font-weight: 780;
-  line-height: 1.55;
-}}
-.bottom-cta{{
+.marketing .headline{{
   text-align:center;
-  margin-top: var(--s4);
-}}
-.bottom-cta a{{
-  background: var(--primary);
-  color:#fff;
-  padding: 14px 42px;
-  border-radius: 14px;
+  font-size: 28px;               /* ✅ 본문 대비 2배급 */
   font-weight: 950;
-  font-size: 18px;
-  text-decoration:none;
-  display:inline-block;
-  box-shadow: 0 10px 24px rgba(17,24,39,.22);
+  color: #111827;
+  margin-bottom: 12px;
 }}
-.bottom-cta a:hover{{ filter: brightness(0.92); }}
-.contact-box{{
-  margin-top: var(--s3);
-  text-align:center;
-  background:#fff;
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding: var(--s3);
-  box-shadow: var(--shadow);
-}}
-.contact-box .label{{
-  font-size: 16px;
-  font-weight: 950;
-  color: var(--text);
-}}
-.contact-box .email{{
-  font-size: 20px;
-  font-weight: 950;
-  color: var(--danger);
-  margin-top: 6px;
-}}
-.copyright{{
-  margin-top: var(--s3);
-  text-align:center;
-  font-size: 13px;
-  color:#98A2B3;
-  font-weight: 700;
+
+/* (11) PRO 섹션 일부 10% 키움 */
+.pro-strong{{
+  font-size: 15.4px; /* 14px의 10% ↑ */
+  font-weight: 900;
+  color:#111827;
 }}
 </style>
 """,
@@ -462,17 +480,6 @@ def request_reset() -> None:
     st.session_state[RESET_FLAG_KEY] = True
     st.rerun()
 
-def build_stacked_image(images: List[Image.Image], gap: int) -> Image.Image:
-    widths, heights = zip(*(im.size for im in images))
-    total_h = sum(heights) + gap * (len(images) - 1 if len(images) > 1 else 0)
-    max_w = max(widths)
-    canvas = Image.new("RGB", (max_w, total_h), (255, 255, 255))
-    y = 0
-    for im in images:
-        canvas.paste(im, (0, y))
-        y += im.height + gap
-    return canvas
-
 def img_to_data_uri(path: str) -> Optional[str]:
     if not os.path.exists(path):
         return None
@@ -498,6 +505,27 @@ def render_ad_box(img_path: str) -> None:
         )
     st.markdown("</div>", unsafe_allow_html=True)
 
+def resize_to_width(im: Image.Image, target_w: int) -> Image.Image:
+    """✅ (12) 900px 고정폭으로 맞추고 좌우여백 없이 꽉 차게"""
+    if im.mode != "RGB":
+        im = im.convert("RGB")
+    w, h = im.size
+    if w == target_w:
+        return im
+    # 가로 기준 비율 유지 리사이즈 (작은 이미지도 900으로 확대)
+    new_h = max(1, int(h * (target_w / float(w))))
+    return im.resize((target_w, new_h), Image.LANCZOS)
+
+def build_stacked_image_fixed_width(images: List[Image.Image], gap: int, target_w: int) -> Image.Image:
+    resized = [resize_to_width(im, target_w) for im in images]
+    total_h = sum(im.size[1] for im in resized) + gap * (len(resized) - 1 if len(resized) > 1 else 0)
+    canvas = Image.new("RGB", (target_w, total_h), (255, 255, 255))
+    y = 0
+    for im in resized:
+        canvas.paste(im, (0, y))  # ✅ x=0, 좌우여백 없음
+        y += im.size[1] + gap
+    return canvas
+
 # =========================================================
 # HEADER
 # =========================================================
@@ -511,12 +539,16 @@ st.markdown(
     </div>
   </div>
 
-  <div class="main-title">MS 상세페이지 자동생성기 [FREE]</div>
+  <div class="main-title">MS 쇼핑몰 상세페이지 자동 생성기</div>
   <div class="sub-title">상세페이지 이미지를 자동으로 생성하여 디자이너의 단순업무시간을 대폭 줄여드립니다.</div>
 
   <div class="guide">
-    <b>*사용방법*</b><br>
-    1) 이미지 업로드(최대 10개) &nbsp;&nbsp; 2) 이미지 간격(0~300px) 조정 &nbsp;&nbsp; 3) 생성하기 버튼 클릭하면 끝!
+    <div class="guide-title">*사용방법*</div>
+    <div class="steps">
+      <div class="step">1) 이미지 업로드(최대 10개)</div>
+      <div class="step">2) 이미지 간격(0~300px) 조정</div>
+      <div class="step">3) 생성하기 버튼 클릭 → 하단 저장하기 버튼 클릭하면 완성</div>
+    </div>
   </div>
 </div>
 """,
@@ -524,7 +556,7 @@ st.markdown(
 )
 
 # =========================================================
-# TOP BANNER
+# TOP BANNER (click -> misharp)
 # =========================================================
 top_uri = img_to_data_uri(TOP_BANNER_PATH)
 if top_uri:
@@ -551,11 +583,10 @@ with right_col:
     render_ad_box(AD_RIGHT_PATH)
 
 with center_col:
-    # ✅ work-area 래퍼 추가 (여기 안에서만 텍스트 인풋 제거)
+    # work-area 래퍼 (흰박스 제거 범위)
     st.markdown('<div class="work-area">', unsafe_allow_html=True)
 
     st.markdown('<div class="section-card">', unsafe_allow_html=True)
-
     st.markdown('<div class="section-title">파일선택</div>', unsafe_allow_html=True)
     st.markdown('<div class="small-muted">JPG/PNG 파일을 업로드하세요. 최대 10개까지 가능합니다.</div>', unsafe_allow_html=True)
     st.markdown('<div class="hr-soft"></div>', unsafe_allow_html=True)
@@ -570,15 +601,40 @@ with center_col:
     if uploaded:
         add_uploaded_files(uploaded)
 
-    st.markdown("<div style='height: 22px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 16px;'></div>", unsafe_allow_html=True)
 
+    # gap + generate + (8) 저장하기 버튼을 "생성하기 바로 하단"에 배치
     cA, cB = st.columns([2, 1.2], gap="medium")
     with cA:
         gap = st.slider("이미지 간격 (0~300PX)", 0, 300, 50)
     with cB:
         generate_clicked = st.button("생성하기 (JPG)", use_container_width=True)
 
-    st.markdown("<div style='height: 22px;'></div>", unsafe_allow_html=True)
+        # (8) 생성 완료 후 저장하기 버튼을 생성하기 바로 아래에 노출
+        if st.session_state["result_bytes"]:
+            st.download_button(
+                label="저장하기",
+                data=st.session_state["result_bytes"],
+                file_name=st.session_state["result_filename"],
+                mime="image/jpeg",
+                use_container_width=True,
+            )
+
+    # 생성 처리
+    if generate_clicked:
+        if len(st.session_state["files"]) == 0:
+            st.warning("먼저 이미지를 업로드해주세요.")
+        else:
+            imgs = [t[2] for t in st.session_state["files"]]
+            # ✅ (12) 900px 고정폭으로 좌우여백 없이 생성
+            result_img = build_stacked_image_fixed_width(imgs, gap, OUTPUT_WIDTH)
+            buf = io.BytesIO()
+            result_img.save(buf, format="JPEG", quality=95)
+            st.session_state["result_bytes"] = buf.getvalue()
+            st.session_state["result_filename"] = "detail_page.jpg"
+            st.success("생성 완료! 오른쪽의 [저장하기] 버튼으로 다운로드하세요.")
+
+    st.markdown("<div style='height: 18px;'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title' style='font-size:16px;'>업로드 파일명</div>", unsafe_allow_html=True)
 
     if len(st.session_state["files"]) == 0:
@@ -607,44 +663,24 @@ with center_col:
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("<div class='small-muted' style='margin-top: 22px;'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='small-muted' style='margin-top: 18px;'>*FREE 버전에서 미리보기는 지원되지 않습니다.</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 26px;'></div>", unsafe_allow_html=True)
 
     reset_cols = st.columns([1, 1, 1])
     with reset_cols[2]:
         st.button("초기화", use_container_width=True, on_click=request_reset)
 
-    if generate_clicked:
-        if len(st.session_state["files"]) == 0:
-            st.warning("먼저 이미지를 업로드해주세요.")
-        else:
-            imgs = [t[2] for t in st.session_state["files"]]
-            result_img = build_stacked_image(imgs, gap)
-            buf = io.BytesIO()
-            result_img.save(buf, format="JPEG", quality=95)
-            st.session_state["result_bytes"] = buf.getvalue()
-            st.session_state["result_filename"] = "detail_page.jpg"
-            st.success("생성 완료! 바로 아래에서 저장하세요.")
-
-    if st.session_state["result_bytes"]:
-        st.download_button(
-            label="저장하기",
-            data=st.session_state["result_bytes"],
-            file_name=st.session_state["result_filename"],
-            mime="image/jpeg",
-            use_container_width=True,
-        )
-
-    st.markdown("</div>", unsafe_allow_html=True)  # section-card 닫기
-    st.markdown("</div>", unsafe_allow_html=True)  # work-area 닫기
+    st.markdown("</div>", unsafe_allow_html=True)  # section-card end
+    st.markdown("</div>", unsafe_allow_html=True)  # work-area end
 
 # =========================================================
-# BOTTOM SECTION
+# (9) MARKETING BOX (헤드라인 추가 + 약간 그레이)
 # =========================================================
 st.markdown(
     """
 <div class="marketing">
+  <div class="headline">20년차 온라인쇼핑몰 대표가 직접 만든 상세페이지 자동화툴</div>
   MS 상세페이지 생성기는 20년차 여성의류 인터넷 쇼핑몰 대표가 사내에서 사용하기 위해 직접 제작한 프로그램으로<br>
   실제 온라인 쇼핑몰 디자인 작업에 적용하고 있으며, 디자이너의 요구사항을 최대한 반영하여 구현한 최고의 툴입니다.<br>
   MS 업무툴로 단순업무 시간은 줄이고 상세페이지의 퀄리티는 더 높이세요.
@@ -655,16 +691,21 @@ st.markdown(
 
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
+# =========================================================
+# (10) 사용안내 텍스트 교체
+# =========================================================
 st.markdown(
     """
 <div class="section-card">
   <div class="section-title">MS 상세페이지 생성기 사용안내</div>
-  <div style="color:#344054; font-weight:750; line-height:1.8; font-size:14px;">
-    1. 사전에 보정작업을 마친 상세페이지용 이미지를 파일선택 버튼으로 선택(최대 10개 가능)<br>
-    2. 이미지 간격 버튼 이용해 이미지간 간격 조정(0~300PX 선택 / 1개 상세페이지당 일괄 적용)<br>
-    3. 생성하기 버튼 클릭하면 상세페이지 완성<br>
-    4. 상세페이지 내 텍스트를 구성하고자 하는 경우 텍스트 편집된 JPG 이미지를 만들어 추가하는 방식으로 활용<br>
-    5. 새 작업을 시작하기 위해서는 초기화를 클릭
+  <div style="color:#344054; font-weight:750; line-height:1.85; font-size:14px;">
+    1. 사전 보정을 끝낸 상세피이지용 이미지를 파일선택에서 선택(최대 10개 가능/5개 정도 권장)<br>
+    2. 이미지 간격 버튼 이용해 이미지간 세로 간격 조정(0~300PX까지 선택가능 / 1개 상세페이지당 일괄 적용됨)<br>
+    &nbsp;&nbsp;&nbsp;가로는 900PX로 고정되며, 업로드한 이미지는 좌우여백없이 배치됩니다.<br>
+    3. 업로드 파일 명 옆 상하버튼, 삭제 버튼 이용해 이미지 순서 정리<br>
+    4. [생성하기] 버튼 클릭 → 생성완료 후 [저장하기] 버튼으로 상세페이지 JPG파일 다운로드<br>
+    4. 본 프리버전에서 상세페이지 내 텍스트를 구성하고자 할 경우, 텍스트 편집된 이미지를 추가하는 방식으로 활용하세요.<br>
+    5. 새로운 작업을 시작할 때는 초기화 클릭
   </div>
 </div>
 """,
@@ -673,17 +714,20 @@ st.markdown(
 
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
+# =========================================================
+# (11) "고급객체" -> "고급개체" / 2문장 10% 키움
+# =========================================================
 st.markdown(
     """
 <div class="section-card">
-  <div class="section-title">PSD(고급객체 레이어)가 필요하신가요?</div>
-  <div style="color:#344054; font-weight:800; line-height:1.8; font-size:14px;">
-    MS PRO는 수정 가능한 상세페이지 PSD 다운로드가 가능합니다. (레이어/고급객체 기반)<br><br>
+  <div class="section-title">PSD(고급개체 레이어)가 필요하신가요?</div>
+  <div style="color:#344054; font-weight:800; line-height:1.85; font-size:14px;">
+    <span class="pro-strong">MS PRO는 수정 가능한 상세페이지 PSD 다운로드가 가능합니다. (레이어/고급개체 기반)</span><br><br>
     <span style="color:#e60012; font-weight:950;">→ PSD로 빠르고 해상도 높은 작업이 필요할 때</span><br>
-    <span style="color:#e60012; font-weight:950;">→ 고급객체(SMART OBJECTS) 레이어 작업이 필요할 때</span><br>
+    <span style="color:#e60012; font-weight:950;">→ 고급개체(SMART OBJECTS) 레이어 작업이 필요할 때</span><br>
     <span style="color:#e60012; font-weight:950;">→ 반복적인 템플릿이 필요할 때</span><br>
     <span style="color:#e60012; font-weight:950;">→ 업로드 파일 미리보기 제공 등 좀 더 다양한 기능이 필요할 때</span><br><br>
-    MS PRO는 상세페이지 웹디자이너에게 최고의 도구가 되어줍니다.
+    <span class="pro-strong">MS PRO는 상세페이지 웹디자이너에게 최고의 도구가 되어줍니다.</span>
   </div>
 </div>
 """,
@@ -692,8 +736,11 @@ st.markdown(
 
 st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
 
+# =========================================================
+# (13) 문구 교체
+# =========================================================
 st.markdown(
-    "<div class='section-title' style='font-size:24px; font-weight:950; margin-top:0;'>PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다.</div>",
+    "<div class='section-title' style='font-size:24px; font-weight:950; margin-top:0;'>PRO버전은 디자이너를 위한 가장 효율적인 툴을 함께 제공합니다.</div>",
     unsafe_allow_html=True
 )
 
@@ -703,9 +750,9 @@ t1, t2, t3 = st.columns(3, gap="medium")
 with t1:
     st.markdown(
         """
-<div class="tool-card">
-  <div class="tool-title">GIF 자동 생성기</div>
-  <div class="tool-desc">
+<div class="section-card" style="margin-top:0;">
+  <div style="font-size:16px; font-weight:950; color:#101828; margin-bottom:8px;">GIF 자동 생성기</div>
+  <div style="font-size:13px; color:#667085; font-weight:780; line-height:1.55;">
     여러 이미지를 업로드하면 고화질 GIF를 자동으로 생성합니다.<br>
     프레임 간격/속도 최적화로 ‘움직이는 배너’ 제작 시간을 확 줄여드립니다.
   </div>
@@ -716,9 +763,9 @@ with t1:
 with t2:
     st.markdown(
         """
-<div class="tool-card">
-  <div class="tool-title">썸네일 메이커</div>
-  <div class="tool-desc">
+<div class="section-card" style="margin-top:0;">
+  <div style="font-size:16px; font-weight:950; color:#101828; margin-bottom:8px;">썸네일 메이커</div>
+  <div style="font-size:13px; color:#667085; font-weight:780; line-height:1.55;">
     쇼핑몰 썸네일 규격에 맞춰 자동 리사이즈/중앙정렬을 지원합니다.<br>
     여백/크롭 문제를 최소화해 ‘바로 업로드 가능한 썸네일’을 만들어드립니다.
   </div>
@@ -729,9 +776,9 @@ with t2:
 with t3:
     st.markdown(
         """
-<div class="tool-card">
-  <div class="tool-title">이미지 자르기 툴</div>
-  <div class="tool-desc">
+<div class="section-card" style="margin-top:0;">
+  <div style="font-size:16px; font-weight:950; color:#101828; margin-bottom:8px;">이미지 자르기 툴</div>
+  <div style="font-size:13px; color:#667085; font-weight:780; line-height:1.55;">
     상세페이지용 고정비율 컷팅과 흰여백 제거를 빠르게 처리합니다.<br>
     피사체 중심 유지 기준으로 작업 효율을 극대화합니다.
   </div>
@@ -742,16 +789,22 @@ with t3:
 
 st.markdown(
     f"""
-<div class="bottom-cta">
-  <a href="{PRO_APPLY_URL}" target="_blank" rel="noopener">PRO 신청하기</a>
+<div style="text-align:center; margin-top: var(--s4);">
+  <a href="{PRO_APPLY_URL}" target="_blank" rel="noopener"
+     style="background: var(--primary); color:#fff; padding: 14px 42px; border-radius: 14px;
+            font-weight: 950; font-size: 18px; text-decoration:none; display:inline-block;
+            box-shadow: 0 10px 24px rgba(17,24,39,.22);">
+    PRO 신청하기
+  </a>
 </div>
 
-<div class="contact-box">
-  <div class="label">사용 및 PRO 문의</div>
-  <div class="email">misharpmail@naver.com</div>
+<div style="margin-top: var(--s3); text-align:center; background:#fff; border:1px solid var(--border);
+            border-radius:14px; padding: var(--s3); box-shadow: var(--shadow);">
+  <div style="font-size: 16px; font-weight: 950; color: var(--text);">사용 및 PRO 문의</div>
+  <div style="font-size: 20px; font-weight: 950; color: var(--danger); margin-top: 6px;">misharpmail@naver.com</div>
 </div>
 
-<div class="copyright">
+<div style="margin-top: var(--s3); text-align:center; font-size: 13px; color:#98A2B3; font-weight: 700;">
   © 2006-2026 MISHARP. All Rights Reserved.
 </div>
 """,
