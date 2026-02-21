@@ -3,6 +3,7 @@ from PIL import Image
 import io
 import os
 import base64
+import hashlib
 from typing import List, Optional, Tuple
 
 # =========================================================
@@ -28,7 +29,9 @@ AD_W = 300
 AD_H = 600
 
 MISHARP_URL = "https://www.misharp.co.kr"
-PRO_APPLY_URL = "#"  # 필요시 교체
+
+# PRO 버튼 링크(원하시는 링크로 교체)
+PRO_APPLY_URL = "https://www.misharp.co.kr"
 
 UPLOADER_KEY = "uploader_files"
 RESET_FLAG_KEY = "do_reset"
@@ -38,8 +41,8 @@ RESET_FLAG_KEY = "do_reset"
 # =========================================================
 if "files" not in st.session_state:
     st.session_state["files"] = []  # List[Tuple[name, bytes, PIL.Image]]
-if "seen_keys" not in st.session_state:
-    st.session_state["seen_keys"] = set()  # set of (name, size)
+if "seen_hashes" not in st.session_state:
+    st.session_state["seen_hashes"] = set()  # 중복 방지용 hash set
 if "result_bytes" not in st.session_state:
     st.session_state["result_bytes"] = None
 if "result_filename" not in st.session_state:
@@ -51,16 +54,11 @@ if RESET_FLAG_KEY not in st.session_state:
 # ✅ SAFE RESET HANDLING (위젯 생성 전에만 uploader key 삭제)
 # =========================================================
 if st.session_state.get(RESET_FLAG_KEY, False):
-    # 1) 커스텀 상태 초기화
     st.session_state["files"] = []
-    st.session_state["seen_keys"] = set()
+    st.session_state["seen_hashes"] = set()
     st.session_state["result_bytes"] = None
     st.session_state["result_filename"] = "detail_page.jpg"
-
-    # 2) uploader 위젯 상태 삭제(위젯 생성 "이전"이라 안전)
-    st.session_state.pop(UPLOADER_KEY, None)
-
-    # 3) 플래그 해제
+    st.session_state.pop(UPLOADER_KEY, None)  # ✅ 위젯 생성 전이라 안전
     st.session_state[RESET_FLAG_KEY] = False
 
 # =========================================================
@@ -166,7 +164,7 @@ html, body, [class*="css"] {{
   display:block;
 }}
 
-/* ---------- Ads (빈칸 제거: aspect-ratio) ---------- */
+/* ---------- Ads (aspect-ratio로 빈칸/잘림 최소화) ---------- */
 .ad-wrapper{{
   width:100%;
   display:flex;
@@ -187,7 +185,7 @@ html, body, [class*="css"] {{
 .ad-box img{{
   width:100%;
   height:100%;
-  object-fit: cover;
+  object-fit: cover;   /* 빈칸 0 우선 (원본이 300x600이면 거의 크롭 없음) */
   display:block;
 }}
 .ad-empty{{
@@ -291,6 +289,86 @@ div[data-testid="stDownloadButton"] > button{{
   color: #fff !important;
   font-weight: 950 !important;
 }}
+
+/* ---------- Bottom sections ---------- */
+.marketing{{
+  margin-top: var(--s5);
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding: var(--s3);
+  text-align:center;
+  color: var(--danger);
+  font-weight: 900;
+  line-height: 1.65;
+  box-shadow: var(--shadow);
+}}
+
+.tool-card{{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow: var(--shadow);
+  padding: var(--s3);
+  min-height: 160px;
+}}
+.tool-title{{
+  font-size: 16px;
+  font-weight: 950;
+  color: var(--text);
+  margin-bottom: 8px;
+}}
+.tool-desc{{
+  font-size: 13px;
+  color: #667085;
+  font-weight: 780;
+  line-height: 1.55;
+}}
+
+.bottom-cta{{
+  text-align:center;
+  margin-top: var(--s4);
+}}
+.bottom-cta a{{
+  background: var(--primary);
+  color:#fff;
+  padding: 14px 42px;
+  border-radius: 14px;
+  font-weight: 950;
+  font-size: 18px;
+  text-decoration:none;
+  display:inline-block;
+  box-shadow: 0 10px 24px rgba(17,24,39,.22);
+}}
+
+.contact-box{{
+  margin-top: var(--s3);
+  text-align:center;
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding: var(--s3);
+  box-shadow: var(--shadow);
+}}
+.contact-box .label{{
+  font-size: 16px;
+  font-weight: 950;
+  color: var(--text);
+}}
+.contact-box .email{{
+  font-size: 20px;
+  font-weight: 950;
+  color: var(--danger);
+  margin-top: 6px;
+}}
+
+.copyright{{
+  margin-top: var(--s3);
+  text-align:center;
+  font-size: 13px;
+  color:#98A2B3;
+  font-weight: 700;
+}}
 </style>
 """,
     unsafe_allow_html=True,
@@ -305,11 +383,11 @@ def safe_open_image(file_bytes: bytes) -> Image.Image:
         img = img.convert("RGB")
     return img
 
-def file_key(name: str, size: int) -> Tuple[str, int]:
-    return (name, int(size))
+def bytes_hash(b: bytes) -> str:
+    return hashlib.sha256(b).hexdigest()
 
 def add_uploaded_files(uploaded) -> None:
-    """✅ rerun 되어도 같은 파일은 추가되지 않도록 seen_keys로 중복 방지"""
+    """✅ rerun 되어도 같은 파일은 hash로 중복 추가되지 않도록 방지"""
     if not uploaded:
         return
 
@@ -317,18 +395,19 @@ def add_uploaded_files(uploaded) -> None:
         if len(st.session_state["files"]) >= MAX_FILES:
             break
 
-        k = file_key(uf.name, getattr(uf, "size", 0) or 0)
-        if k in st.session_state["seen_keys"]:
-            continue  # ✅ 이미 등록된 파일이면 스킵
-
         file_bytes = uf.read()
+        h = bytes_hash(file_bytes)
+
+        if h in st.session_state["seen_hashes"]:
+            continue
+
         try:
             img = safe_open_image(file_bytes)
         except Exception:
             continue
 
         st.session_state["files"].append((uf.name, file_bytes, img))
-        st.session_state["seen_keys"].add(k)
+        st.session_state["seen_hashes"].add(h)
 
 def move_file(idx: int, direction: int) -> None:
     files = st.session_state["files"]
@@ -337,23 +416,20 @@ def move_file(idx: int, direction: int) -> None:
         files[idx], files[new_idx] = files[new_idx], files[idx]
         st.session_state["files"] = files
 
+def rebuild_seen_hashes() -> None:
+    s = set()
+    for (_n, b, _i) in st.session_state["files"]:
+        s.add(bytes_hash(b))
+    st.session_state["seen_hashes"] = s
+
 def remove_file(idx: int) -> None:
     files = st.session_state["files"]
     if 0 <= idx < len(files):
-        name, _b, _img = files[idx]
-        # seen_keys에서도 제거(같은 파일 다시 업로드 가능하도록)
-        # size는 uploader 없이 알기 어려워서 name 기반 삭제는 위험 -> 일단 전체 재구축 방식으로 안전하게 처리
         files.pop(idx)
         st.session_state["files"] = files
-
-        # ✅ seen_keys 재구축(현재 files 기준으로)
-        new_seen = set()
-        for (n, bts, _i) in st.session_state["files"]:
-            new_seen.add((n, len(bts)))  # bytes 길이로 대체 키
-        st.session_state["seen_keys"] = new_seen
+        rebuild_seen_hashes()
 
 def request_reset() -> None:
-    # ✅ 위젯 키를 직접 건드리지 말고 플래그만 세팅
     st.session_state[RESET_FLAG_KEY] = True
     st.rerun()
 
@@ -418,7 +494,7 @@ st.markdown(
   <div class="header-topline">
     <div class="brand-small">MISHARP DETAIL PAGE MAKER V1 - FREE VERSION</div>
     <div class="pro-btn">
-      <a href="{PRO_APPLY_URL}" target="_blank"><span class="pill">PRO신청</span></a>
+      <a href="{PRO_APPLY_URL}" target="_blank" rel="noopener"><span class="pill">PRO신청</span></a>
     </div>
   </div>
 
@@ -482,7 +558,6 @@ with center_col:
 
     cA, cB = st.columns([2, 1.2], gap="medium")
     with cA:
-        # ✅ 0~300으로 확장
         gap = st.slider("이미지 간격 (0~300PX)", 0, 300, 50)
     with cB:
         st.markdown("<div id='generate_btn'></div>", unsafe_allow_html=True)
@@ -530,6 +605,9 @@ with center_col:
         st.markdown("<div id='reset_btn'></div>", unsafe_allow_html=True)
         st.button("초기화", use_container_width=True, on_click=request_reset)
 
+    if "generate_clicked_once" not in st.session_state:
+        st.session_state["generate_clicked_once"] = False
+
     if generate_clicked:
         if len(st.session_state["files"]) == 0:
             st.warning("먼저 이미지를 업로드해주세요.")
@@ -553,3 +631,124 @@ with center_col:
         )
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+# =========================================================
+# ✅ BOTTOM SECTION (하단부 전체 복구)
+# =========================================================
+st.markdown(
+    """
+<div class="marketing">
+  MS 상세페이지 생성기는 20년차 여성의류 인터넷 쇼핑몰 대표가 사내에서 사용하기 위해 직접 제작한 프로그램으로<br>
+  실제 온라인 쇼핑몰 디자인 작업에 적용하고 있으며, 디자이너의 요구사항을 최대한 반영하여 구현한 최고의 툴입니다.<br>
+  MS 업무툴로 단순업무 시간은 줄이고 상세페이지의 퀄리티는 더 높이세요.
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
+
+st.markdown(
+    """
+<div class="section-card">
+  <div class="section-title">MS 상세페이지 생성기 사용안내</div>
+  <div style="color:#344054; font-weight:750; line-height:1.8; font-size:14px;">
+    1. 사전에 보정작업을 마친 상세페이지용 이미지를 파일선택 버튼으로 선택(최대 10개 가능)<br>
+    2. 이미지 간격 버튼 이용해 이미지간 간격 조정(0~300PX 선택 / 1개 상세페이지당 일괄 적용)<br>
+    3. 생성하기 버튼 클릭하면 상세페이지 완성<br>
+    4. 상세페이지 내 텍스트를 구성하고자 하는 경우 텍스트 편집된 JPG 이미지를 만들어 추가하는 방식으로 활용<br>
+    5. 새 작업을 시작하기 위해서는 초기화를 클릭
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
+
+st.markdown(
+    """
+<div class="section-card">
+  <div class="section-title">PSD(고급객체 레이어)가 필요하신가요?</div>
+  <div style="color:#344054; font-weight:800; line-height:1.8; font-size:14px;">
+    MS PRO는 수정 가능한 상세페이지 PSD 다운로드가 가능합니다. (레이어/고급객체 기반)<br><br>
+    <span style="color:#e60012; font-weight:950;">→ PSD로 빠르고 해상도 높은 작업이 필요할 때</span><br>
+    <span style="color:#e60012; font-weight:950;">→ 고급객체(SMART OBJECTS) 레이어 작업이 필요할 때</span><br>
+    <span style="color:#e60012; font-weight:950;">→ 반복적인 템플릿이 필요할 때</span><br>
+    <span style="color:#e60012; font-weight:950;">→ 업로드 파일 미리보기 제공 등 좀 더 다양한 기능이 필요할 때</span><br><br>
+    MS PRO는 상세페이지 웹디자이너에게 최고의 도구가 되어줍니다.
+  </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+st.markdown("<div style='height: var(--s4);'></div>", unsafe_allow_html=True)
+
+st.markdown(
+    "<div class='section-title' style='font-size:24px; font-weight:950; margin-top:0;'>PRO 버전은 디자이너를 위한 최고의 툴도 아래와 같이 제공합니다.</div>",
+    unsafe_allow_html=True
+)
+
+st.markdown("<div style='height: var(--s2);'></div>", unsafe_allow_html=True)
+
+t1, t2, t3 = st.columns(3, gap="medium")
+with t1:
+    st.markdown(
+        """
+<div class="tool-card">
+  <div class="tool-title">GIF 자동 생성기</div>
+  <div class="tool-desc">
+    여러 이미지를 업로드하면 고화질 GIF를 자동으로 생성합니다.<br>
+    프레임 간격/속도 최적화로 ‘움직이는 배너’ 제작 시간을 확 줄여드립니다.
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+with t2:
+    st.markdown(
+        """
+<div class="tool-card">
+  <div class="tool-title">썸네일 메이커</div>
+  <div class="tool-desc">
+    쇼핑몰 썸네일 규격에 맞춰 자동 리사이즈/중앙정렬을 지원합니다.<br>
+    여백/크롭 문제를 최소화해 ‘바로 업로드 가능한 썸네일’을 만들어드립니다.
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+with t3:
+    st.markdown(
+        """
+<div class="tool-card">
+  <div class="tool-title">이미지 자르기 툴</div>
+  <div class="tool-desc">
+    상세페이지용 고정비율 컷팅과 흰여백 제거를 빠르게 처리합니다.<br>
+    피사체 중심 유지 기준으로 작업 효율을 극대화합니다.
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+st.markdown(
+    f"""
+<div class="bottom-cta">
+  <a href="{PRO_APPLY_URL}" target="_blank" rel="noopener">PRO 신청하기</a>
+</div>
+
+<div class="contact-box">
+  <div class="label">사용 및 PRO 문의</div>
+  <div class="email">misharpmail@naver.com</div>
+</div>
+
+<div class="copyright">
+  © 2006-2026 MISHARP. All Rights Reserved.
+</div>
+""",
+    unsafe_allow_html=True,
+)
